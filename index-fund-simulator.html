@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Index Fund Allocation Simulator — $150,000</title>
+<style>
+  :root {
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f5f5f3;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #6b6b67;
+    --color-text-tertiary: #9b9b97;
+    --color-border: rgba(0,0,0,0.12);
+    --color-border-secondary: rgba(0,0,0,0.22);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #1a1a18;
+      --color-bg-secondary: #252523;
+      --color-text-primary: #f0ede8;
+      --color-text-secondary: #9b9b97;
+      --color-text-tertiary: #6b6b67;
+      --color-border: rgba(255,255,255,0.12);
+      --color-border-secondary: rgba(255,255,255,0.22);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--color-bg); color: var(--color-text-primary); font-size: 15px; line-height: 1.6; padding: 24px; max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 24px; }
+  .section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px; }
+  .fund-selector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .fund-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fund-btn { font-size: 12px; padding: 5px 11px; cursor: pointer; border-radius: var(--radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); transition: background 0.15s; white-space: nowrap; }
+  .fund-btn:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+  .fund-btn.active-broad { background: var(--color-bg-secondary); color: var(--color-text-primary); border-color: #1D9E75; }
+  .fund-btn.active-growth { background: var(--color-bg-secondary); color: var(--color-text-primary); border-color: #185FA5; }
+  .fund-note { font-size: 11px; color: var(--color-text-tertiary); margin: 4px 0 0; }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .slider-row input[type=range] { flex: 1; height: 4px; }
+  .slider-label { font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .alloc-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .alloc-display { font-size: 15px; font-weight: 500; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  .preset-btn { font-size: 12px; padding: 4px 10px; cursor: pointer; border-radius: var(--radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); transition: background 0.15s; }
+  .preset-btn:hover, .preset-btn.active { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 16px; }
+  .stat-label { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; }
+  .stat-val { font-size: 20px; font-weight: 500; margin: 0; }
+  .bear-c { color: #E24B4A; } .base-c { color: #1D9E75; } .bull-c { color: #185FA5; }
+  .legend { display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--color-text-secondary); }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .chart-wrap { position: relative; width: 100%; height: 300px; }
+  .table-wrap { margin-top: 20px; border: 0.5px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-weight: 500; padding: 6px 8px; border-bottom: 0.5px solid var(--color-border); color: var(--color-text-secondary); }
+  td { padding: 6px 8px; border-bottom: 0.5px solid var(--color-border); }
+  tr:last-child td { border-bottom: none; }
+  .footnote { font-size: 11px; color: var(--color-text-tertiary); margin-top: 12px; line-height: 1.5; }
+  .divider { border: none; border-top: 0.5px solid var(--color-border); margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<h1>Index fund allocation simulator</h1>
+<p class="subtitle">$150,000 lump sum — 30-year bear / base / bull scenarios. Updated May 2026.</p>
+
+<div class="fund-selector-grid">
+  <div>
+    <p class="section-label">Broad market</p>
+    <div class="fund-btns" id="broad-btns">
+      <button class="fund-btn active-broad" data-fund="VTI">VTI</button>
+      <button class="fund-btn" data-fund="VOO">VOO</button>
+      <button class="fund-btn" data-fund="SPY">SPY</button>
+      <button class="fund-btn" data-fund="VTSAX">VTSAX</button>
+    </div>
+    <p class="fund-note" id="broad-note">Total US market — 0.03% ER</p>
+  </div>
+  <div>
+    <p class="section-label">Growth tilt</p>
+    <div class="fund-btns" id="growth-btns">
+      <button class="fund-btn active-growth" data-fund="SCHG">SCHG</button>
+      <button class="fund-btn" data-fund="VUG">VUG</button>
+      <button class="fund-btn" data-fund="QQQ">QQQ</button>
+    </div>
+    <p class="fund-note" id="growth-note">US large-cap growth — 0.04% ER</p>
+  </div>
+</div>
+
+<div class="slider-row">
+  <span class="slider-label" style="color:#1D9E75;" id="broad-label">VTI</span>
+  <input type="range" min="0" max="100" value="60" step="1" id="slider" />
+  <span class="slider-label" style="color:#185FA5;" id="growth-label">SCHG</span>
+</div>
+
+<div class="alloc-row">
+  <div class="alloc-display" id="alloc-display">60% VTI + 40% SCHG — $150,000</div>
+  <div class="presets" id="presets">
+    <button class="preset-btn" data-v="100">100% broad</button>
+    <button class="preset-btn" data-v="80">80/20</button>
+    <button class="preset-btn active" data-v="60">60/40</button>
+    <button class="preset-btn" data-v="50">50/50</button>
+    <button class="preset-btn" data-v="20">20/80</button>
+    <button class="preset-btn" data-v="0">100% growth</button>
+  </div>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card"><p class="stat-label">Bear — 30Y</p><p class="stat-val bear-c" id="bear-30"></p></div>
+  <div class="stat-card"><p class="stat-label">Base — 30Y</p><p class="stat-val base-c" id="base-30"></p></div>
+  <div class="stat-card"><p class="stat-label">Bull — 30Y</p><p class="stat-val bull-c" id="bull-30"></p></div>
+</div>
+
+<div class="legend">
+  <span><span class="legend-dot" style="background:#E24B4A;"></span>Bear</span>
+  <span><span class="legend-dot" style="background:#1D9E75;"></span>Base</span>
+  <span><span class="legend-dot" style="background:#185FA5;"></span>Bull</span>
+  <span><span class="legend-dot" style="background:#B4B2A9;border:0.5px dashed #888;"></span>Inflation (2.5%)</span>
+</div>
+
+<div class="chart-wrap">
+  <canvas id="growthChart" role="img" aria-label="Line chart showing portfolio growth over 30 years under bear, base, and bull scenarios"></canvas>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th>Scenario</th><th>10 years</th><th>20 years</th><th>30 years</th><th>30Y CAGR</th>
+    </tr></thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<hr class="divider">
+
+<p class="footnote">
+  <strong>Fund buckets:</strong> VTI, VOO, SPY, VTSAX are modeled identically — all broad US market / S&P 500 with marginally different expense ratios.
+  VUG (Vanguard Large-Cap Growth) ≈ SCHG but slightly broader (~235 holdings). QQQ (Nasdaq-100) is the most concentrated and highest-variance growth option (~60% tech, 0.20% ER).<br><br>
+  <strong>Scenario assumptions:</strong> Bear = P/E compression toward 17x historical mean over 10 years + muted earnings growth. Base = gradual multiple normalization to ~22x + trend earnings. Bull = AI earnings thesis delivers, multiples hold near current levels. Starting Shiller CAPE ~31x (May 2026).<br><br>
+  <strong>Return decomposition (Bogle framework):</strong> Total Return = Dividend Yield + EPS Growth + P/E Change. See full analysis in <code>wiki/analyses/index-fund-analysis.md</code>.<br><br>
+  <em>This is a model, not a forecast. Actual returns will differ.</em>
+</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const INITIAL = 150000;
+const FUND_DATA = {
+  VTI:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},  note:'Total US market — 0.03% ER' },
+  VOO:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},  note:'S&P 500 (Vanguard) — 0.03% ER' },
+  SPY:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},  note:'S&P 500 (SPDR) — 0.0945% ER' },
+  VTSAX: { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},  note:'Total US market mutual fund — 0.04% ER' },
+  SCHG:  { bear:{r10:5.1,r20:6.8,r30:7.3},   base:{r10:10.1,r20:9.8,r30:9.7},  bull:{r10:18.8,r20:15.6,r30:14.5}, note:'US large-cap growth — 0.04% ER' },
+  VUG:   { bear:{r10:4.5,r20:6.5,r30:7.1},   base:{r10:9.5,r20:9.5,r30:9.5},   bull:{r10:17.0,r20:14.5,r30:13.8}, note:'Vanguard large-cap growth — 0.04% ER' },
+  QQQ:   { bear:{r10:2.8,r20:5.5,r30:7.0},   base:{r10:11.0,r20:10.5,r30:10.2}, bull:{r10:24.0,r20:18.5,r30:16.5}, note:'Nasdaq-100 (Invesco) — 0.20% ER, highest concentration' }
+};
+
+let selectedBroad = 'VTI', selectedGrowth = 'SCHG';
+
+function impliedRate(tgt, yrs, prev) { return Math.pow(Math.pow(1+tgt/100, yrs)/prev, 1/yrs)-1; }
+function growthCurve(sc) {
+  const {r10,r20,r30} = sc;
+  const p1 = Math.pow(1+r10/100, 10);
+  const r2 = impliedRate(r20, 20, p1);
+  const p2 = p1 * Math.pow(1+r2, 10);
+  const r3 = impliedRate(r30, 30, p2);
+  return Array.from({length:31},(_,y) => {
+    if (y===0) return INITIAL;
+    if (y<=10) return INITIAL*Math.pow(1+r10/100,y);
+    if (y<=20) return INITIAL*p1*Math.pow(1+r2,y-10);
+    return INITIAL*p2*Math.pow(1+r3,y-20);
+  });
+}
+function blend(broadPct, scenario) {
+  const w = broadPct/100;
+  const bC = growthCurve(FUND_DATA[selectedBroad][scenario]);
+  const gC = growthCurve(FUND_DATA[selectedGrowth][scenario]);
+  return bC.map((v,i) => w*v + (1-w)*gC[i]);
+}
+function inflCurve() { return Array.from({length:31},(_,i)=>INITIAL*Math.pow(1.025,i)); }
+function cagr30(curve) { return ((Math.pow(curve[30]/INITIAL,1/30)-1)*100).toFixed(1)+'%/yr'; }
+function fmt(v) { return v>=1e6 ? '$'+(v/1e6).toFixed(2)+'M' : '$'+Math.round(v/1000)+'K'; }
+
+let chart;
+const labels = Array.from({length:31},(_,i)=>i);
+
+function updateAll() {
+  const broadPct = parseInt(document.getElementById('slider').value);
+  const growthPct = 100-broadPct;
+  document.getElementById('alloc-display').textContent = broadPct+'% '+selectedBroad+' + '+growthPct+'% '+selectedGrowth+' — $150,000';
+  document.getElementById('broad-label').textContent = selectedBroad;
+  document.getElementById('growth-label').textContent = selectedGrowth;
+
+  const bear = blend(broadPct,'bear'), base = blend(broadPct,'base'), bull = blend(broadPct,'bull'), infl = inflCurve();
+
+  document.getElementById('bear-30').textContent = fmt(bear[30]);
+  document.getElementById('base-30').textContent = fmt(base[30]);
+  document.getElementById('bull-30').textContent = fmt(bull[30]);
+
+  document.getElementById('table-body').innerHTML = [
+    ['Bear',bear,'#E24B4A'],['Base',base,'#1D9E75'],['Bull',bull,'#185FA5'],['Inflation',infl,'#B4B2A9']
+  ].map(([l,c,col])=>`<tr><td style="font-weight:500;color:${col};">${l}</td><td>${fmt(c[10])}</td><td>${fmt(c[20])}</td><td>${fmt(c[30])}</td><td>${l==='Inflation'?'2.5%':cagr30(c)}</td></tr>`).join('');
+
+  if (chart) {
+    [bear,base,bull,infl].forEach((d,i)=>chart.data.datasets[i].data=d);
+    chart.update('none');
+  } else {
+    chart = new Chart(document.getElementById('growthChart'), {
+      type:'line',
+      data:{ labels, datasets:[
+        {label:'Bear',data:bear,borderColor:'#E24B4A',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+        {label:'Base',data:base,borderColor:'#1D9E75',borderWidth:2.5,pointRadius:0,tension:0.3,fill:false},
+        {label:'Bull',data:bull,borderColor:'#185FA5',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+        {label:'Infl',data:infl,borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:0.3,fill:false}
+      ]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},
+        scales:{
+          x:{title:{display:true,text:'Years',font:{size:11},color:'#888'},ticks:{color:'#888',font:{size:11},maxTicksLimit:7},grid:{color:'rgba(128,128,128,0.1)'}},
+          y:{ticks:{color:'#888',font:{size:11},callback:v=>fmt(v)},grid:{color:'rgba(128,128,128,0.1)'}}
+        }
+      }
+    });
+  }
+}
+
+document.getElementById('broad-btns').addEventListener('click', e => {
+  const btn = e.target.closest('.fund-btn'); if (!btn) return;
+  selectedBroad = btn.dataset.fund;
+  document.querySelectorAll('#broad-btns .fund-btn').forEach(b=>b.classList.remove('active-broad'));
+  btn.classList.add('active-broad');
+  document.getElementById('broad-note').textContent = FUND_DATA[selectedBroad].note;
+  updateAll();
+});
+document.getElementById('growth-btns').addEventListener('click', e => {
+  const btn = e.target.closest('.fund-btn'); if (!btn) return;
+  selectedGrowth = btn.dataset.fund;
+  document.querySelectorAll('#growth-btns .fund-btn').forEach(b=>b.classList.remove('active-growth'));
+  btn.classList.add('active-growth');
+  document.getElementById('growth-note').textContent = FUND_DATA[selectedGrowth].note;
+  updateAll();
+});
+document.getElementById('slider').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.v)===v));
+  updateAll();
+});
+document.getElementById('presets').addEventListener('click', e => {
+  if (!e.target.dataset.v) return;
+  const v = parseInt(e.target.dataset.v);
+  document.getElementById('slider').value = v;
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.v)===v));
+  updateAll();
+});
+updateAll();
+</script>
+</body>
+</html>
