@@ -55,6 +55,18 @@
   .presets { display: flex; gap: 6px; flex-wrap: wrap; }
   .preset-btn { font-size: 12px; padding: 4px 10px; cursor: pointer; border-radius: var(--radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); transition: background 0.15s; }
   .preset-btn:hover, .preset-btn.active { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+
+  .crash-controls { background: rgba(139,47,201,0.06); border: 0.5px solid rgba(139,47,201,0.25); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 20px; }
+  .crash-controls .section-label { color: #8B2FC9; margin-bottom: 10px; }
+  .crash-ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+  @media (max-width: 480px) { .crash-ctrl-grid { grid-template-columns: 1fr; } }
+  .crash-ctrl-row { display: flex; flex-direction: column; gap: 4px; }
+  .crash-ctrl-top { display: flex; justify-content: space-between; align-items: center; }
+  .crash-ctrl-label { font-size: 12px; color: var(--color-text-secondary); }
+  .crash-ctrl-val { font-size: 13px; font-weight: 600; color: #8B2FC9; }
+  .crash-ctrl-row input[type=range] { width: 100%; height: 4px; accent-color: #8B2FC9; cursor: pointer; }
+  .crash-timing-note { font-size: 11px; color: var(--color-text-tertiary); margin-top: 10px; line-height: 1.5; }
+
   .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
   @media (max-width: 500px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
   .stat-card { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 16px; }
@@ -139,11 +151,32 @@
   </div>
 </div>
 
+<div class="crash-controls">
+  <p class="section-label">Crash timing</p>
+  <div class="crash-ctrl-grid">
+    <div class="crash-ctrl-row">
+      <div class="crash-ctrl-top">
+        <span class="crash-ctrl-label">Crash starts (year)</span>
+        <span class="crash-ctrl-val" id="crash-start-val">2</span>
+      </div>
+      <input type="range" min="1" max="25" value="2" step="1" id="crash-start" />
+    </div>
+    <div class="crash-ctrl-row">
+      <div class="crash-ctrl-top">
+        <span class="crash-ctrl-label">Years to trough</span>
+        <span class="crash-ctrl-val" id="crash-dur-val">2</span>
+      </div>
+      <input type="range" min="1" max="5" value="2" step="1" id="crash-dur" />
+    </div>
+  </div>
+  <p class="crash-timing-note" id="crash-timing-note"></p>
+</div>
+
 <div class="stat-grid">
   <div class="stat-card"><p class="stat-label">Crash — 30Y</p><p class="stat-val crash-c" id="crash-30"></p></div>
-  <div class="stat-card"><p class="stat-label">Bear — 30Y</p><p class="stat-val bear-c" id="bear-30"></p></div>
-  <div class="stat-card"><p class="stat-label">Base — 30Y</p><p class="stat-val base-c" id="base-30"></p></div>
-  <div class="stat-card"><p class="stat-label">Bull — 30Y</p><p class="stat-val bull-c" id="bull-30"></p></div>
+  <div class="stat-card"><p class="stat-label">Bear — 30Y</p><p class="stat-val bear-c"  id="bear-30"></p></div>
+  <div class="stat-card"><p class="stat-label">Base — 30Y</p><p class="stat-val base-c"  id="base-30"></p></div>
+  <div class="stat-card"><p class="stat-label">Bull — 30Y</p><p class="stat-val bull-c"  id="bull-30"></p></div>
 </div>
 
 <div class="legend">
@@ -155,7 +188,7 @@
 </div>
 
 <div class="chart-wrap">
-  <canvas id="growthChart" role="img" aria-label="Line chart showing portfolio growth over 30 years under crash, bear, base, and bull scenarios"></canvas>
+  <canvas id="growthChart" role="img" aria-label="Portfolio growth chart over 30 years across crash, bear, base, and bull scenarios"></canvas>
 </div>
 
 <div class="table-wrap">
@@ -189,13 +222,13 @@
 <div class="scenario-cards">
   <div class="scenario-card crash">
     <h3 class="crash-c">Crash (2008-style)</h3>
-    <p>A financial crisis hits within the first two years — credit markets seize, banks teeter, and the S&P 500 falls ~55% peak to trough (mirroring Oct 2007 – Mar 2009). Starting from an already-elevated CAPE of 31x, the crash is compounded: there's no valuation cushion to absorb the panic.</p>
-    <p>The chart shows the actual shape: a sharp plunge to roughly half your initial investment by year 2, then a slow climb. By year 10 you're still underwater in real terms. The Fed eventually rides to the rescue (QE, rate cuts), enabling a recovery — but the compounding years lost in the trough are gone forever. Growth funds (SCHG, QQQ) crash harder and deeper, falling 60–65%.</p>
+    <p>A financial crisis hits — credit markets seize, banks teeter, and the S&P 500 falls ~55% peak to trough (mirroring Oct 2007 – Mar 2009). Growth funds fall 60–65%. Use the timing controls above to move when it strikes and how long the drawdown lasts.</p>
+    <p>The recovery is modeled in two phases: a ~5-year snap-back driven by central bank intervention (rate cuts, QE) at an elevated rate, then normalization to long-run trend. The key insight: a crash late in your horizon is worse than an early one, because snap-back years fall outside the 30Y window — you get the drawdown but not the full recovery.</p>
     <div class="decomp-line">
-      Broad yr 1–2: ~−55% total drawdown (trough)<br>
-      Recovery yr 3–10: ~10–11%/yr just to break even<br>
-      Yr 10 CAGR: −1% (still below starting value)<br>
-      Growth tilt: −4 to −5% 10Y CAGR, deeper hole
+      Pre-crash: base growth rate per fund<br>
+      Snap-back (5 yrs post-trough): ~14% broad / ~18–20% growth<br>
+      Post snap-back: long-run normalized rate<br>
+      Move the sliders to see this play out ↑
     </div>
   </div>
   <div class="scenario-card bear">
@@ -232,7 +265,7 @@
 <p class="footnote">
   <strong>Fund buckets:</strong> VTI, VOO, SPY, VTSAX are modeled identically — all broad US market / S&P 500 with marginally different expense ratios.
   VUG (Vanguard Large-Cap Growth) ≈ SCHG but slightly broader (~235 holdings). QQQ (Nasdaq-100) is the most concentrated and highest-variance growth option (~60% tech, 0.20% ER).<br><br>
-  <strong>Crash scenario note:</strong> The crash curve shows the actual year-by-year shape (sharp drawdown then recovery). All other scenarios use smoothed 10-year CAGR segments — they represent average annualized returns, not a straight line.<br><br>
+  <strong>Crash model:</strong> Pre-crash growth uses each fund's base-case rate. Post-trough: 5-year snap-back at elevated rate (reflecting Fed intervention), then long-run normalization. Bear/base/bull use smoothed CAGR segments. Crash shows the actual year-by-year shape.<br><br>
   <strong>Return decomposition (Bogle framework):</strong> Total Return = Dividend Yield + EPS Growth + P/E Change. Starting Shiller CAPE ~31x (May 2026).<br><br>
   <em>This is a model, not a forecast. Actual returns will differ.</em>
 </p>
@@ -240,16 +273,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 let INITIAL = 150000;
+
+// crash object: preRate = base growth before crash, snapRate = post-trough snap-back rate,
+// postRate = long-run normalized rate after snap-back, crashDepth = peak-to-trough loss
 const FUND_DATA = {
-  VTI:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{r10:-1.0,r20:4.5,r30:5.8, crashDepth:0.55,troughYr:2}, note:'Total US market — 0.03% ER' },
-  VOO:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{r10:-1.0,r20:4.5,r30:5.8, crashDepth:0.55,troughYr:2}, note:'S&P 500 (Vanguard) — 0.03% ER' },
-  SPY:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{r10:-1.0,r20:4.5,r30:5.8, crashDepth:0.55,troughYr:2}, note:'S&P 500 (SPDR) — 0.0945% ER' },
-  VTSAX: { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{r10:-1.0,r20:4.5,r30:5.8, crashDepth:0.55,troughYr:2}, note:'Total US market mutual fund — 0.04% ER' },
-  SCHG:  { bear:{r10:5.1,r20:6.8,r30:7.3},   base:{r10:10.1,r20:9.8,r30:9.7},  bull:{r10:18.8,r20:15.6,r30:14.5}, crash:{r10:-4.5,r20:5.5,r30:7.0, crashDepth:0.65,troughYr:2}, note:'US large-cap growth — 0.04% ER' },
-  VUG:   { bear:{r10:4.5,r20:6.5,r30:7.1},   base:{r10:9.5,r20:9.5,r30:9.5},   bull:{r10:17.0,r20:14.5,r30:13.8}, crash:{r10:-3.5,r20:5.2,r30:6.8, crashDepth:0.62,troughYr:2}, note:'Vanguard large-cap growth — 0.04% ER' },
-  QQQ:   { bear:{r10:2.8,r20:5.5,r30:7.0},   base:{r10:11.0,r20:10.5,r30:10.2}, bull:{r10:24.0,r20:18.5,r30:16.5}, crash:{r10:-2.5,r20:6.0,r30:7.5, crashDepth:0.50,troughYr:2}, note:'Nasdaq-100 (Invesco) — 0.20% ER, highest concentration' }
+  VTI:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{crashDepth:0.55, preRate:0.054, snapRate:0.14, postRate:0.071}, note:'Total US market — 0.03% ER' },
+  VOO:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{crashDepth:0.55, preRate:0.054, snapRate:0.14, postRate:0.071}, note:'S&P 500 (Vanguard) — 0.03% ER' },
+  SPY:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{crashDepth:0.55, preRate:0.054, snapRate:0.14, postRate:0.071}, note:'S&P 500 (SPDR) — 0.0945% ER' },
+  VTSAX: { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{crashDepth:0.55, preRate:0.054, snapRate:0.14, postRate:0.071}, note:'Total US market mutual fund — 0.04% ER' },
+  SCHG:  { bear:{r10:5.1,r20:6.8,r30:7.3},   base:{r10:10.1,r20:9.8,r30:9.7},  bull:{r10:18.8,r20:15.6,r30:14.5}, crash:{crashDepth:0.65, preRate:0.101, snapRate:0.18, postRate:0.097}, note:'US large-cap growth — 0.04% ER' },
+  VUG:   { bear:{r10:4.5,r20:6.5,r30:7.1},   base:{r10:9.5,r20:9.5,r30:9.5},   bull:{r10:17.0,r20:14.5,r30:13.8}, crash:{crashDepth:0.62, preRate:0.095, snapRate:0.17, postRate:0.095}, note:'Vanguard large-cap growth — 0.04% ER' },
+  QQQ:   { bear:{r10:2.8,r20:5.5,r30:7.0},   base:{r10:11.0,r20:10.5,r30:10.2}, bull:{r10:24.0,r20:18.5,r30:16.5}, crash:{crashDepth:0.50, preRate:0.110, snapRate:0.20, postRate:0.102}, note:'Nasdaq-100 (Invesco) — 0.20% ER, highest concentration' }
 };
 
+const SNAP_YRS = 5;
 let selectedBroad = 'VTI', selectedGrowth = 'SCHG';
 
 function impliedRate(tgt, yrs, prev) { return Math.pow(Math.pow(1+tgt/100, yrs)/prev, 1/yrs)-1; }
@@ -260,22 +297,6 @@ function growthCurve(sc) {
   const r2 = impliedRate(r20, 20, p1);
   const p2 = p1 * Math.pow(1+r2, 10);
   const r3 = impliedRate(r30, 30, p2);
-
-  if (sc.crashDepth) {
-    // Show actual crash shape: exponential drop to trough, then recovery to the same 10Y endpoint
-    const troughYr = sc.troughYr || 2;
-    const troughVal = INITIAL * (1 - sc.crashDepth);
-    const target10 = INITIAL * p1;
-    const recoveryRate = Math.pow(target10 / troughVal, 1 / (10 - troughYr)) - 1;
-    return Array.from({length:31}, (_,y) => {
-      if (y === 0) return INITIAL;
-      if (y <= troughYr) return INITIAL * Math.pow(1 - sc.crashDepth, y / troughYr);
-      if (y <= 10) return troughVal * Math.pow(1 + recoveryRate, y - troughYr);
-      if (y <= 20) return INITIAL * p1 * Math.pow(1+r2, y-10);
-      return INITIAL * p2 * Math.pow(1+r3, y-20);
-    });
-  }
-
   return Array.from({length:31},(_,y) => {
     if (y===0) return INITIAL;
     if (y<=10) return INITIAL*Math.pow(1+r10/100,y);
@@ -284,12 +305,43 @@ function growthCurve(sc) {
   });
 }
 
+function crashCurveFn(sc, cs, cd) {
+  const troughYr = Math.min(cs + cd, 30);
+  const peakVal   = INITIAL * Math.pow(1 + sc.preRate, cs);
+  const troughVal = peakVal * (1 - sc.crashDepth);
+  const snapEndYr = troughYr + SNAP_YRS;
+  const snapEndVal = troughVal * Math.pow(1 + sc.snapRate, SNAP_YRS);
+
+  const pts = [INITIAL];
+  for (let y = 1; y <= 30; y++) {
+    if (y <= cs) {
+      pts.push(INITIAL * Math.pow(1 + sc.preRate, y));
+    } else if (y <= troughYr) {
+      const t = (y - cs) / cd;
+      pts.push(peakVal * Math.pow(1 - sc.crashDepth, t));
+    } else if (y <= snapEndYr) {
+      pts.push(troughVal * Math.pow(1 + sc.snapRate, y - troughYr));
+    } else {
+      pts.push(snapEndVal * Math.pow(1 + sc.postRate, y - snapEndYr));
+    }
+  }
+  return pts;
+}
+
 function blend(broadPct, scenario) {
   const w = broadPct/100;
   const bC = growthCurve(FUND_DATA[selectedBroad][scenario]);
   const gC = growthCurve(FUND_DATA[selectedGrowth][scenario]);
   return bC.map((v,i) => w*v + (1-w)*gC[i]);
 }
+
+function blendCrash(broadPct, cs, cd) {
+  const w = broadPct/100;
+  const bC = crashCurveFn(FUND_DATA[selectedBroad].crash, cs, cd);
+  const gC = crashCurveFn(FUND_DATA[selectedGrowth].crash, cs, cd);
+  return bC.map((v,i) => w*v + (1-w)*gC[i]);
+}
+
 function inflCurve() { return Array.from({length:31},(_,i)=>INITIAL*Math.pow(1.025,i)); }
 function cagr30(curve) { return ((Math.pow(curve[30]/INITIAL,1/30)-1)*100).toFixed(1)+'%/yr'; }
 function fmt(v) { return v>=1e6 ? '$'+(v/1e6).toFixed(2)+'M' : '$'+Math.round(v/1000)+'K'; }
@@ -300,12 +352,32 @@ const labels = Array.from({length:31},(_,i)=>i);
 function updateAll() {
   INITIAL = Math.max(1, parseFloat(document.getElementById('initial-input').value) || 150000);
   const broadPct = parseInt(document.getElementById('slider').value);
-  const growthPct = 100-broadPct;
-  document.getElementById('alloc-display').textContent = broadPct+'% '+selectedBroad+' + '+growthPct+'% '+selectedGrowth;
+  const cs = parseInt(document.getElementById('crash-start').value);
+  const cd = parseInt(document.getElementById('crash-dur').value);
+
+  document.getElementById('crash-start-val').textContent = cs;
+  document.getElementById('crash-dur-val').textContent = cd;
+
+  const troughYr = cs + cd;
+  const broadDepth = Math.round(FUND_DATA[selectedBroad].crash.crashDepth * 100);
+  const growthDepth = Math.round(FUND_DATA[selectedGrowth].crash.crashDepth * 100);
+  const blendDepth = Math.round((broadPct/100)*broadDepth + ((100-broadPct)/100)*growthDepth);
+  const snapEnd = troughYr + SNAP_YRS;
+  document.getElementById('crash-timing-note').textContent =
+    `Crash starts year ${cs} → trough year ${troughYr} (~${blendDepth}% drawdown for this blend) → snap-back through year ${Math.min(snapEnd,30)} → long-run normalization. ` +
+    (troughYr >= 25 ? 'Late crash: most snap-back years fall outside the 30Y window.' :
+     troughYr >= 15 ? 'Mid-horizon crash: partial snap-back captured.' :
+     'Early crash: full snap-back + normalization within 30Y window.');
+
+  document.getElementById('alloc-display').textContent = broadPct+'% '+selectedBroad+' + '+(100-broadPct)+'% '+selectedGrowth;
   document.getElementById('broad-label').textContent = selectedBroad;
   document.getElementById('growth-label').textContent = selectedGrowth;
 
-  const crash = blend(broadPct,'crash'), bear = blend(broadPct,'bear'), base = blend(broadPct,'base'), bull = blend(broadPct,'bull'), infl = inflCurve();
+  const crash = blendCrash(broadPct, cs, cd);
+  const bear  = blend(broadPct, 'bear');
+  const base  = blend(broadPct, 'base');
+  const bull  = blend(broadPct, 'bull');
+  const infl  = inflCurve();
 
   document.getElementById('crash-30').textContent = fmt(crash[30]);
   document.getElementById('bear-30').textContent  = fmt(bear[30]);
@@ -323,10 +395,10 @@ function updateAll() {
     chart = new Chart(document.getElementById('growthChart'), {
       type:'line',
       data:{ labels, datasets:[
-        {label:'Crash',data:crash,borderColor:'#8B2FC9',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
-        {label:'Bear', data:bear, borderColor:'#E24B4A',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+        {label:'Crash',data:crash,borderColor:'#8B2FC9',borderWidth:2,  pointRadius:0,tension:0.3,fill:false},
+        {label:'Bear', data:bear, borderColor:'#E24B4A',borderWidth:2,  pointRadius:0,tension:0.3,fill:false},
         {label:'Base', data:base, borderColor:'#1D9E75',borderWidth:2.5,pointRadius:0,tension:0.3,fill:false},
-        {label:'Bull', data:bull, borderColor:'#185FA5',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+        {label:'Bull', data:bull, borderColor:'#185FA5',borderWidth:2,  pointRadius:0,tension:0.3,fill:false},
         {label:'Infl', data:infl, borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:0.3,fill:false}
       ]},
       options:{
@@ -342,6 +414,8 @@ function updateAll() {
 }
 
 document.getElementById('initial-input').addEventListener('input', updateAll);
+document.getElementById('crash-start').addEventListener('input', updateAll);
+document.getElementById('crash-dur').addEventListener('input', updateAll);
 document.getElementById('broad-btns').addEventListener('click', e => {
   const btn = e.target.closest('.fund-btn'); if (!btn) return;
   selectedBroad = btn.dataset.fund;
