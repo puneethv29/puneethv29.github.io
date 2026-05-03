@@ -55,11 +55,12 @@
   .presets { display: flex; gap: 6px; flex-wrap: wrap; }
   .preset-btn { font-size: 12px; padding: 4px 10px; cursor: pointer; border-radius: var(--radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); transition: background 0.15s; }
   .preset-btn:hover, .preset-btn.active { background: var(--color-bg-secondary); color: var(--color-text-primary); }
-  .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+  @media (max-width: 500px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
   .stat-card { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 16px; }
   .stat-label { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; }
   .stat-val { font-size: 20px; font-weight: 500; margin: 0; }
-  .bear-c { color: #E24B4A; } .base-c { color: #1D9E75; } .bull-c { color: #185FA5; }
+  .crash-c { color: #8B2FC9; } .bear-c { color: #E24B4A; } .base-c { color: #1D9E75; } .bull-c { color: #185FA5; }
   .legend { display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--color-text-secondary); }
   .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
   .chart-wrap { position: relative; width: 100%; height: 300px; }
@@ -69,16 +70,14 @@
   td { padding: 6px 8px; border-bottom: 0.5px solid var(--color-border); }
   tr:last-child td { border-bottom: none; }
 
-  .scenario-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
-  @media (max-width: 560px) { .scenario-cards { grid-template-columns: 1fr; } }
+  .scenario-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 8px; }
+  @media (max-width: 480px) { .scenario-cards { grid-template-columns: 1fr; } }
   .scenario-card { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 14px 16px; border-top: 2px solid transparent; }
-  .scenario-card.bear { border-top-color: #E24B4A; }
-  .scenario-card.base { border-top-color: #1D9E75; }
-  .scenario-card.bull { border-top-color: #185FA5; }
+  .scenario-card.crash { border-top-color: #8B2FC9; }
+  .scenario-card.bear  { border-top-color: #E24B4A; }
+  .scenario-card.base  { border-top-color: #1D9E75; }
+  .scenario-card.bull  { border-top-color: #185FA5; }
   .scenario-card h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
-  .scenario-card h3.bear-c { color: #E24B4A; }
-  .scenario-card h3.base-c { color: #1D9E75; }
-  .scenario-card h3.bull-c { color: #185FA5; }
   .scenario-card p { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 8px; }
   .scenario-card p:last-child { margin-bottom: 0; }
   .decomp-line { font-size: 11px; color: var(--color-text-tertiary); font-family: 'SF Mono', 'Fira Code', monospace; line-height: 1.8; border-top: 0.5px solid var(--color-border); margin-top: 8px; padding-top: 8px; }
@@ -90,7 +89,7 @@
 <body>
 
 <h1>Index fund allocation simulator</h1>
-<p class="subtitle">30-year bear / base / bull scenarios. Updated May 2026.</p>
+<p class="subtitle">30-year crash / bear / base / bull scenarios. Updated May 2026.</p>
 
 <div class="initial-row">
   <label for="initial-input">Initial investment</label>
@@ -141,12 +140,14 @@
 </div>
 
 <div class="stat-grid">
+  <div class="stat-card"><p class="stat-label">Crash — 30Y</p><p class="stat-val crash-c" id="crash-30"></p></div>
   <div class="stat-card"><p class="stat-label">Bear — 30Y</p><p class="stat-val bear-c" id="bear-30"></p></div>
   <div class="stat-card"><p class="stat-label">Base — 30Y</p><p class="stat-val base-c" id="base-30"></p></div>
   <div class="stat-card"><p class="stat-label">Bull — 30Y</p><p class="stat-val bull-c" id="bull-30"></p></div>
 </div>
 
 <div class="legend">
+  <span><span class="legend-dot" style="background:#8B2FC9;"></span>Crash</span>
   <span><span class="legend-dot" style="background:#E24B4A;"></span>Bear</span>
   <span><span class="legend-dot" style="background:#1D9E75;"></span>Base</span>
   <span><span class="legend-dot" style="background:#185FA5;"></span>Bull</span>
@@ -154,7 +155,7 @@
 </div>
 
 <div class="chart-wrap">
-  <canvas id="growthChart" role="img" aria-label="Line chart showing portfolio growth over 30 years under bear, base, and bull scenarios"></canvas>
+  <canvas id="growthChart" role="img" aria-label="Line chart showing portfolio growth over 30 years under crash, bear, base, and bull scenarios"></canvas>
 </div>
 
 <div class="table-wrap">
@@ -179,13 +180,24 @@
   The historical average CAPE for the US market is around <strong style="color:var(--color-text-primary);">17x</strong>. Today it sits near <strong style="color:var(--color-text-primary);">31x</strong> — meaning you're paying roughly $31 for every $1 of average 10-year earnings. That's not necessarily a crash signal, but it does imply that future returns will likely be lower than historical averages, because some of the future earnings growth is already priced in.
 </p>
 <p style="font-size:11px;color:var(--color-text-tertiary);line-height:1.6;margin-bottom:0;">
-  High CAPE → more of the expected return is already "borrowed" from the future via today's elevated price. The three scenarios below represent different views on how far and how fast that premium unwinds.
+  High CAPE → more of the expected return is already "borrowed" from the future via today's elevated price. The scenarios below represent different views on how far and how fast that premium unwinds.
 </p>
 
 <hr class="divider">
 
 <p class="section-label">How each scenario is built</p>
 <div class="scenario-cards">
+  <div class="scenario-card crash">
+    <h3 class="crash-c">Crash (2008-style)</h3>
+    <p>A financial crisis hits within the first two years — credit markets seize, banks teeter, and the S&P 500 falls ~55% peak to trough (mirroring Oct 2007 – Mar 2009). Starting from an already-elevated CAPE of 31x, the crash is compounded: there's no valuation cushion to absorb the panic.</p>
+    <p>The chart shows the actual shape: a sharp plunge to roughly half your initial investment by year 2, then a slow climb. By year 10 you're still underwater in real terms. The Fed eventually rides to the rescue (QE, rate cuts), enabling a recovery — but the compounding years lost in the trough are gone forever. Growth funds (SCHG, QQQ) crash harder and deeper, falling 60–65%.</p>
+    <div class="decomp-line">
+      Broad yr 1–2: ~−55% total drawdown (trough)<br>
+      Recovery yr 3–10: ~10–11%/yr just to break even<br>
+      Yr 10 CAGR: −1% (still below starting value)<br>
+      Growth tilt: −4 to −5% 10Y CAGR, deeper hole
+    </div>
+  </div>
   <div class="scenario-card bear">
     <h3 class="bear-c">Bear</h3>
     <p>The Shiller CAPE sits at ~31x today — nearly double the historical mean of ~17x. This scenario assumes investors demand a return to normal valuations over the first decade. That multiple compression (~3.5% annual headwind) overwhelms modest earnings growth, producing near-inflation returns in years 1–10.</p>
@@ -220,6 +232,7 @@
 <p class="footnote">
   <strong>Fund buckets:</strong> VTI, VOO, SPY, VTSAX are modeled identically — all broad US market / S&P 500 with marginally different expense ratios.
   VUG (Vanguard Large-Cap Growth) ≈ SCHG but slightly broader (~235 holdings). QQQ (Nasdaq-100) is the most concentrated and highest-variance growth option (~60% tech, 0.20% ER).<br><br>
+  <strong>Crash scenario note:</strong> The crash curve shows the actual year-by-year shape (sharp drawdown then recovery). All other scenarios use smoothed 10-year CAGR segments — they represent average annualized returns, not a straight line.<br><br>
   <strong>Return decomposition (Bogle framework):</strong> Total Return = Dividend Yield + EPS Growth + P/E Change. Starting Shiller CAPE ~31x (May 2026).<br><br>
   <em>This is a model, not a forecast. Actual returns will differ.</em>
 </p>
@@ -228,24 +241,41 @@
 <script>
 let INITIAL = 150000;
 const FUND_DATA = {
-  VTI:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},  note:'Total US market — 0.03% ER' },
-  VOO:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},  note:'S&P 500 (Vanguard) — 0.03% ER' },
-  SPY:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},  note:'S&P 500 (SPDR) — 0.0945% ER' },
-  VTSAX: { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},  note:'Total US market mutual fund — 0.04% ER' },
-  SCHG:  { bear:{r10:5.1,r20:6.8,r30:7.3},   base:{r10:10.1,r20:9.8,r30:9.7},  bull:{r10:18.8,r20:15.6,r30:14.5}, note:'US large-cap growth — 0.04% ER' },
-  VUG:   { bear:{r10:4.5,r20:6.5,r30:7.1},   base:{r10:9.5,r20:9.5,r30:9.5},   bull:{r10:17.0,r20:14.5,r30:13.8}, note:'Vanguard large-cap growth — 0.04% ER' },
-  QQQ:   { bear:{r10:2.8,r20:5.5,r30:7.0},   base:{r10:11.0,r20:10.5,r30:10.2}, bull:{r10:24.0,r20:18.5,r30:16.5}, note:'Nasdaq-100 (Invesco) — 0.20% ER, highest concentration' }
+  VTI:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{r10:-1.0,r20:4.5,r30:5.8, crashDepth:0.55,troughYr:2}, note:'Total US market — 0.03% ER' },
+  VOO:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{r10:-1.0,r20:4.5,r30:5.8, crashDepth:0.55,troughYr:2}, note:'S&P 500 (Vanguard) — 0.03% ER' },
+  SPY:   { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{r10:-1.0,r20:4.5,r30:5.8, crashDepth:0.55,troughYr:2}, note:'S&P 500 (SPDR) — 0.0945% ER' },
+  VTSAX: { bear:{r10:2.4,r20:4.6,r30:5.7},   base:{r10:5.4,r20:6.7,r30:7.1},   bull:{r10:10.0,r20:9.7,r30:9.6},   crash:{r10:-1.0,r20:4.5,r30:5.8, crashDepth:0.55,troughYr:2}, note:'Total US market mutual fund — 0.04% ER' },
+  SCHG:  { bear:{r10:5.1,r20:6.8,r30:7.3},   base:{r10:10.1,r20:9.8,r30:9.7},  bull:{r10:18.8,r20:15.6,r30:14.5}, crash:{r10:-4.5,r20:5.5,r30:7.0, crashDepth:0.65,troughYr:2}, note:'US large-cap growth — 0.04% ER' },
+  VUG:   { bear:{r10:4.5,r20:6.5,r30:7.1},   base:{r10:9.5,r20:9.5,r30:9.5},   bull:{r10:17.0,r20:14.5,r30:13.8}, crash:{r10:-3.5,r20:5.2,r30:6.8, crashDepth:0.62,troughYr:2}, note:'Vanguard large-cap growth — 0.04% ER' },
+  QQQ:   { bear:{r10:2.8,r20:5.5,r30:7.0},   base:{r10:11.0,r20:10.5,r30:10.2}, bull:{r10:24.0,r20:18.5,r30:16.5}, crash:{r10:-2.5,r20:6.0,r30:7.5, crashDepth:0.50,troughYr:2}, note:'Nasdaq-100 (Invesco) — 0.20% ER, highest concentration' }
 };
 
 let selectedBroad = 'VTI', selectedGrowth = 'SCHG';
 
 function impliedRate(tgt, yrs, prev) { return Math.pow(Math.pow(1+tgt/100, yrs)/prev, 1/yrs)-1; }
+
 function growthCurve(sc) {
   const {r10,r20,r30} = sc;
   const p1 = Math.pow(1+r10/100, 10);
   const r2 = impliedRate(r20, 20, p1);
   const p2 = p1 * Math.pow(1+r2, 10);
   const r3 = impliedRate(r30, 30, p2);
+
+  if (sc.crashDepth) {
+    // Show actual crash shape: exponential drop to trough, then recovery to the same 10Y endpoint
+    const troughYr = sc.troughYr || 2;
+    const troughVal = INITIAL * (1 - sc.crashDepth);
+    const target10 = INITIAL * p1;
+    const recoveryRate = Math.pow(target10 / troughVal, 1 / (10 - troughYr)) - 1;
+    return Array.from({length:31}, (_,y) => {
+      if (y === 0) return INITIAL;
+      if (y <= troughYr) return INITIAL * Math.pow(1 - sc.crashDepth, y / troughYr);
+      if (y <= 10) return troughVal * Math.pow(1 + recoveryRate, y - troughYr);
+      if (y <= 20) return INITIAL * p1 * Math.pow(1+r2, y-10);
+      return INITIAL * p2 * Math.pow(1+r3, y-20);
+    });
+  }
+
   return Array.from({length:31},(_,y) => {
     if (y===0) return INITIAL;
     if (y<=10) return INITIAL*Math.pow(1+r10/100,y);
@@ -253,6 +283,7 @@ function growthCurve(sc) {
     return INITIAL*p2*Math.pow(1+r3,y-20);
   });
 }
+
 function blend(broadPct, scenario) {
   const w = broadPct/100;
   const bC = growthCurve(FUND_DATA[selectedBroad][scenario]);
@@ -274,27 +305,29 @@ function updateAll() {
   document.getElementById('broad-label').textContent = selectedBroad;
   document.getElementById('growth-label').textContent = selectedGrowth;
 
-  const bear = blend(broadPct,'bear'), base = blend(broadPct,'base'), bull = blend(broadPct,'bull'), infl = inflCurve();
+  const crash = blend(broadPct,'crash'), bear = blend(broadPct,'bear'), base = blend(broadPct,'base'), bull = blend(broadPct,'bull'), infl = inflCurve();
 
-  document.getElementById('bear-30').textContent = fmt(bear[30]);
-  document.getElementById('base-30').textContent = fmt(base[30]);
-  document.getElementById('bull-30').textContent = fmt(bull[30]);
+  document.getElementById('crash-30').textContent = fmt(crash[30]);
+  document.getElementById('bear-30').textContent  = fmt(bear[30]);
+  document.getElementById('base-30').textContent  = fmt(base[30]);
+  document.getElementById('bull-30').textContent  = fmt(bull[30]);
 
   document.getElementById('table-body').innerHTML = [
-    ['Bear',bear,'#E24B4A'],['Base',base,'#1D9E75'],['Bull',bull,'#185FA5'],['Inflation',infl,'#B4B2A9']
+    ['Crash',crash,'#8B2FC9'],['Bear',bear,'#E24B4A'],['Base',base,'#1D9E75'],['Bull',bull,'#185FA5'],['Inflation',infl,'#B4B2A9']
   ].map(([l,c,col])=>`<tr><td style="font-weight:500;color:${col};">${l}</td><td>${fmt(c[10])}</td><td>${fmt(c[20])}</td><td>${fmt(c[30])}</td><td>${l==='Inflation'?'2.5%':cagr30(c)}</td></tr>`).join('');
 
   if (chart) {
-    [bear,base,bull,infl].forEach((d,i)=>chart.data.datasets[i].data=d);
+    [crash,bear,base,bull,infl].forEach((d,i)=>chart.data.datasets[i].data=d);
     chart.update('none');
   } else {
     chart = new Chart(document.getElementById('growthChart'), {
       type:'line',
       data:{ labels, datasets:[
-        {label:'Bear',data:bear,borderColor:'#E24B4A',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
-        {label:'Base',data:base,borderColor:'#1D9E75',borderWidth:2.5,pointRadius:0,tension:0.3,fill:false},
-        {label:'Bull',data:bull,borderColor:'#185FA5',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
-        {label:'Infl',data:infl,borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:0.3,fill:false}
+        {label:'Crash',data:crash,borderColor:'#8B2FC9',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+        {label:'Bear', data:bear, borderColor:'#E24B4A',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+        {label:'Base', data:base, borderColor:'#1D9E75',borderWidth:2.5,pointRadius:0,tension:0.3,fill:false},
+        {label:'Bull', data:bull, borderColor:'#185FA5',borderWidth:2,pointRadius:0,tension:0.3,fill:false},
+        {label:'Infl', data:infl, borderColor:'#B4B2A9',borderWidth:1.5,borderDash:[4,4],pointRadius:0,tension:0.3,fill:false}
       ]},
       options:{
         responsive:true,maintainAspectRatio:false,
