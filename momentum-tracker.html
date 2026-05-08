@@ -22,115 +22,137 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg:      #1a1a18;
-    --bg2:     #252523;
-    --bg3:     #2f2f2d;
-    --text:    #f0ede8;
-    --text2:   #9b9b97;
-    --text3:   #6b6b67;
-    --border:  rgba(255,255,255,0.10);
-    --border2: rgba(255,255,255,0.20);
-    --gold:    #C8A020;
+    --bg:#1a1a18; --bg2:#252523; --bg3:#2f2f2d; --text:#f0ede8;
+    --text2:#9b9b97; --text3:#6b6b67;
+    --border:rgba(255,255,255,0.10); --border2:rgba(255,255,255,0.20);
+    --gold:#C8A020;
   }
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
 
-/* ── Header ── */
-.header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 0.5px solid var(--border); gap: 12px; }
-.header h1 { font-size: 16px; font-weight: 600; }
-.header-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:.5px solid var(--border);gap:12px}
+.header h1{font-size:16px;font-weight:600}
+.header-sub{font-size:12px;color:var(--text2);margin-top:2px}
 
-/* ── Buttons ── */
-.btn { padding: 6px 14px; border-radius: var(--radius); border: none; font-size: 12px; cursor: pointer; font-family: inherit; transition: opacity .15s; }
-.btn-primary { background: var(--text); color: var(--bg); }
-.btn-primary:hover { opacity: .8; }
-.btn-ghost { background: transparent; border: 0.5px solid var(--border2); color: var(--text2); }
-.btn-ghost:hover { color: var(--text); border-color: var(--text); }
+/* Buttons */
+.btn{padding:6px 14px;border-radius:var(--radius);border:none;font-size:12px;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.btn-primary{background:var(--text);color:var(--bg)}
+.btn-primary:hover{opacity:.8}
+.btn-ghost{background:transparent;border:.5px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text)}
 
-/* ── Sessions bar ── */
-.sessions-bar { display: flex; align-items: center; gap: 6px; padding: 8px 24px; border-bottom: 0.5px solid var(--border); background: var(--bg2); overflow-x: auto; flex-wrap: wrap; }
-.session-tab { display: flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; border: 0.5px solid var(--border2); background: transparent; color: var(--text2); font-size: 12px; cursor: pointer; white-space: nowrap; }
-.session-tab:hover { background: var(--bg3); color: var(--text); }
-.session-tab.active { background: var(--text); color: var(--bg); border-color: transparent; }
-.session-del { font-size: 11px; opacity: .5; cursor: pointer; padding: 0 1px; }
-.session-del:hover { opacity: 1; }
-.btn-add-session { padding: 4px 12px; border-radius: 20px; border: 0.5px dashed var(--border2); background: transparent; color: var(--text2); font-size: 12px; cursor: pointer; }
-.btn-add-session:hover { border-style: solid; color: var(--text); }
+/* Sessions */
+.sessions-bar{display:flex;align-items:center;gap:6px;padding:8px 24px;border-bottom:.5px solid var(--border);background:var(--bg2);overflow-x:auto;flex-wrap:wrap}
+.session-tab{display:flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;border:.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap}
+.session-tab:hover{background:var(--bg3);color:var(--text)}
+.session-tab.active{background:var(--text);color:var(--bg);border-color:transparent}
+.session-del{font-size:11px;opacity:.5;cursor:pointer;padding:0 1px}
+.session-del:hover{opacity:1}
+.btn-add-session{padding:4px 12px;border-radius:20px;border:.5px dashed var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer}
+.btn-add-session:hover{border-style:solid;color:var(--text)}
 
-/* ── New session form ── */
-.new-session-form { display: none; align-items: center; gap: 8px; padding: 8px 24px; border-bottom: 0.5px solid var(--border); background: var(--bg2); }
-.text-input { font-size: 13px; padding: 5px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); outline: none; font-family: inherit; }
-.text-input:focus { border-color: var(--blue); }
+/* New session form */
+.new-session-form{display:none;align-items:center;gap:8px;padding:8px 24px;border-bottom:.5px solid var(--border);background:var(--bg2)}
+.text-input{font-size:13px;padding:5px 10px;border-radius:var(--radius);border:.5px solid var(--border2);background:var(--bg);color:var(--text);outline:none;font-family:inherit}
+.text-input:focus{border-color:var(--blue)}
 
-/* ── Toolbar ── */
-.toolbar { display: flex; align-items: center; gap: 10px; padding: 10px 24px; border-bottom: 0.5px solid var(--border); flex-wrap: wrap; }
-.ticker-input { font-size: 13px; padding: 6px 12px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; font-family: inherit; flex: 1; min-width: 180px; max-width: 380px; }
-.ticker-input:focus { border-color: var(--blue); background: var(--bg); }
-.refresh-all-btn { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text2); font-size: 12px; cursor: pointer; font-family: inherit; white-space: nowrap; }
-.refresh-all-btn:hover:not(:disabled) { color: var(--text); border-color: var(--text); }
-.refresh-all-btn:disabled { opacity: .45; cursor: not-allowed; }
-.filters { display: flex; align-items: center; gap: 14px; margin-left: auto; flex-wrap: wrap; }
-.filter-item { display: flex; align-items: center; gap: 6px; }
-.filter-label { font-size: 11px; color: var(--text2); white-space: nowrap; }
-.filter-input { width: 64px; font-size: 12px; padding: 4px 8px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); outline: none; font-family: inherit; }
-.filter-input:focus { border-color: var(--blue); }
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 24px;border-bottom:.5px solid var(--border);flex-wrap:wrap}
+.ticker-input{font-size:13px;padding:6px 12px;border-radius:var(--radius);border:.5px solid var(--border2);background:var(--bg2);color:var(--text);outline:none;font-family:inherit;flex:1;min-width:160px;max-width:340px}
+.ticker-input:focus{border-color:var(--blue);background:var(--bg)}
+.icon-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:var(--radius);border:.5px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.icon-btn:hover:not(:disabled){color:var(--text);border-color:var(--text)}
+.icon-btn:disabled{opacity:.4;cursor:not-allowed}
+.filters{display:flex;align-items:center;gap:12px;margin-left:auto;flex-wrap:wrap}
+.filter-item{display:flex;align-items:center;gap:5px}
+.filter-label{font-size:11px;color:var(--text2);white-space:nowrap}
+.filter-input{width:60px;font-size:12px;padding:4px 8px;border-radius:var(--radius);border:.5px solid var(--border2);background:var(--bg2);color:var(--text);outline:none;font-family:inherit}
+.filter-input:focus{border-color:var(--blue)}
+.filter-select{font-size:12px;padding:4px 8px;border-radius:var(--radius);border:.5px solid var(--border2);background:var(--bg2);color:var(--text);outline:none;font-family:inherit;max-width:140px}
 
-/* ── Table ── */
-.table-wrap { overflow-x: auto; padding: 0 24px 32px; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
-th { text-align: left; padding: 5px 10px; border-bottom: 0.5px solid var(--border); color: var(--text2); font-weight: 500; font-size: 11px; white-space: nowrap; cursor: pointer; user-select: none; }
-th.nosort { cursor: default; }
-th:not(.nosort):hover { color: var(--text); }
-th.asc::after  { content: ' ↑'; color: var(--blue); }
-th.desc::after { content: ' ↓'; color: var(--blue); }
-td { padding: 7px 10px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--bg2); }
+/* Progress bar */
+.progress-wrap{display:none;align-items:center;gap:10px;padding:8px 24px;border-bottom:.5px solid var(--border);background:var(--bg2)}
+.progress-track{flex:1;max-width:200px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--blue);border-radius:2px;transition:width .3s}
+.progress-text{font-size:12px;color:var(--text2)}
+.progress-cancel{font-size:11px;padding:3px 8px;border-radius:4px;border:.5px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-family:inherit}
+.progress-cancel:hover{color:var(--red);border-color:var(--red)}
 
-/* ── Rank badge ── */
-.rank-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 24px; padding: 0 6px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text3); }
-.rank-badge:hover { border-color: var(--blue); color: var(--blue); }
-.rank-badge.gold   { background: rgba(160,120,0,0.10); border-color: rgba(160,120,0,0.40); color: var(--gold); }
-.rank-badge.silver { background: rgba(140,140,140,0.10); border-color: rgba(140,140,140,0.40); color: var(--text2); }
-.rank-badge.bronze { background: rgba(24,95,165,0.08);  border-color: rgba(24,95,165,0.30);  color: var(--blue); }
-.rank-input { width: 42px; font-size: 12px; font-weight: 600; text-align: center; padding: 3px 4px; border-radius: 6px; border: 0.5px solid var(--blue); background: var(--bg); color: var(--text); outline: none; font-family: inherit; }
+/* Table */
+.table-wrap{overflow-x:auto;padding:0 24px 32px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px}
+th{text-align:left;padding:5px 10px;border-bottom:.5px solid var(--border);color:var(--text2);font-weight:500;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none}
+th.nosort{cursor:default}
+th:not(.nosort):hover{color:var(--text)}
+th.asc::after{content:' ↑';color:var(--blue)}
+th.desc::after{content:' ↓';color:var(--blue)}
+td{padding:7px 10px;border-bottom:.5px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg2)}
 
-/* ── Gain ── */
-.pos { color: var(--green); font-weight: 500; }
-.neg { color: var(--red);   font-weight: 500; }
+/* Rank */
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:24px;padding:0 6px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:.5px solid var(--border2);background:var(--bg2);color:var(--text3)}
+.rank-badge:hover{border-color:var(--blue);color:var(--blue)}
+.rank-badge.gold  {background:rgba(160,120,0,.10);border-color:rgba(160,120,0,.40);color:var(--gold)}
+.rank-badge.silver{background:rgba(140,140,140,.10);border-color:rgba(140,140,140,.40);color:var(--text2)}
+.rank-badge.bronze{background:rgba(24,95,165,.08);border-color:rgba(24,95,165,.30);color:var(--blue)}
+.rank-input{width:42px;font-size:12px;font-weight:600;text-align:center;padding:3px 4px;border-radius:6px;border:.5px solid var(--blue);background:var(--bg);color:var(--text);outline:none;font-family:inherit}
 
-/* ── Symbol + Name ── */
-.sym  { font-weight: 600; }
-.name { font-size: 11px; color: var(--text2); margin-top: 1px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Gain */
+.pos{color:var(--green);font-weight:500}
+.neg{color:var(--red);font-weight:500}
+.gain-wrap{display:flex;align-items:center;gap:7px}
+.gain-bar-track{width:44px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;flex-shrink:0}
+.gain-bar-fill{height:100%;border-radius:2px}
 
-/* ── Gain bar ── */
-.gain-wrap { display: flex; align-items: center; gap: 7px; }
-.gain-bar-track { width: 48px; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; flex-shrink: 0; }
-.gain-bar-fill  { height: 100%; border-radius: 2px; }
+/* Symbol/Name/Sector */
+.sym{font-weight:600}
+.co-name{font-size:11px;color:var(--text2);margin-top:1px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sector-tag{display:inline-block;font-size:10px;color:var(--text3);margin-top:1px}
 
-/* ── Status ── */
-.spinner { display: inline-block; width: 12px; height: 12px; border: 1.5px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.err-txt { font-size: 11px; color: var(--red); }
-.ok-txt  { font-size: 10px; color: var(--text3); }
+/* Status */
+.spinner{display:inline-block;width:12px;height:12px;border:1.5px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-txt{font-size:11px;color:var(--red)}
+.ok-txt{font-size:10px;color:var(--text3)}
+.pending-txt{font-size:10px;color:var(--text3)}
+.row-refresh{padding:2px 6px;font-size:11px;border-radius:4px;border:.5px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-family:inherit}
+.row-refresh:hover{color:var(--text)}
+.remove-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:1px 4px;border-radius:4px;line-height:1}
+.remove-btn:hover{color:var(--red);background:rgba(226,75,74,.1)}
 
-/* ── Per-row refresh ── */
-.row-refresh { padding: 2px 6px; font-size: 11px; border-radius: 4px; border: 0.5px solid var(--border2); background: transparent; color: var(--text3); cursor: pointer; font-family: inherit; }
-.row-refresh:hover { color: var(--text); border-color: var(--border2); }
+/* Empty */
+.empty{text-align:center;padding:64px 24px;color:var(--text2)}
+.empty h3{font-size:15px;font-weight:500;margin-bottom:8px;color:var(--text)}
+.empty p{font-size:13px;line-height:1.7}
+.empty code{font-size:12px;background:var(--bg2);padding:1px 6px;border-radius:4px}
 
-/* ── Remove ── */
-.remove-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 15px; padding: 1px 4px; border-radius: 4px; line-height: 1; }
-.remove-btn:hover { color: var(--red); background: rgba(226,75,74,.1); }
+/* Footer */
+.footer{padding:8px 24px;font-size:11px;color:var(--text3);border-top:.5px solid var(--border)}
 
-/* ── Empty state ── */
-.empty { text-align: center; padding: 64px 24px; color: var(--text2); }
-.empty h3 { font-size: 15px; font-weight: 500; margin-bottom: 8px; color: var(--text); }
-.empty p  { font-size: 13px; line-height: 1.7; }
-.empty code { font-size: 12px; background: var(--bg2); padding: 1px 6px; border-radius: 4px; }
-
-/* ── Footer ── */
-.footer { padding: 8px 24px; font-size: 11px; color: var(--text3); border-top: 0.5px solid var(--border); }
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center;padding:24px}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg);border-radius:12px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:.5px solid var(--border)}
+.modal-hdr h2{font-size:15px;font-weight:600}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);padding:0 4px;line-height:1}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px}
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--blue);background:rgba(24,95,165,.04)}
+.drop-zone p{font-size:13px;color:var(--text2);margin-top:6px}
+.drop-zone .browse-label{color:var(--blue);cursor:pointer;text-decoration:underline}
+.drop-zone .drop-icon{font-size:28px;margin-bottom:8px}
+.modal-instructions{margin-top:16px;font-size:12px;color:var(--text2);line-height:1.7}
+.modal-instructions strong{color:var(--text)}
+.modal-instructions ol{margin-left:16px;margin-top:6px}
+.modal-instructions li{margin-bottom:4px}
+.import-result{margin-top:14px;padding:10px 14px;border-radius:var(--radius);font-size:13px;display:none}
+.import-result.ok{background:rgba(29,158,117,.1);color:var(--green)}
+.import-result.warn{background:rgba(226,75,74,.08);color:var(--red)}
 </style>
 </head>
 <body>
@@ -146,73 +168,117 @@ tr:hover td { background: var(--bg2); }
 <div class="sessions-bar" id="sessions-bar"></div>
 
 <div class="new-session-form" id="new-session-form">
-  <input class="text-input" id="ns-name" placeholder="Session name — e.g. Aug 2026" maxlength="40" style="width:220px" />
+  <input class="text-input" id="ns-name" placeholder="Session name — e.g. Aug 2026" maxlength="40" style="width:220px"/>
   <button class="btn btn-primary" id="ns-create">Create</button>
   <button class="btn btn-ghost"   id="ns-cancel">Cancel</button>
 </div>
 
 <div class="toolbar">
-  <input class="ticker-input" id="ticker-input" placeholder="Add tickers: NVDA AAPL MSFT (space or comma-separated)" autocomplete="off" />
+  <input class="ticker-input" id="ticker-input" placeholder="Add tickers: NVDA AAPL MSFT …" autocomplete="off"/>
   <button class="btn btn-primary" id="btn-add">Add</button>
-  <button class="refresh-all-btn" id="btn-refresh-all">↻ Refresh All</button>
+  <button class="icon-btn" id="btn-import">↑ Import CSV</button>
+  <button class="icon-btn" id="btn-refresh-all">↻ Refresh All</button>
   <div class="filters">
     <div class="filter-item">
       <label class="filter-label">Min ADR%</label>
-      <input class="filter-input" type="number" id="f-adr"  value="0" min="0" step="0.5" />
+      <input class="filter-input" type="number" id="f-adr"  value="0" min="0" step="0.5"/>
     </div>
     <div class="filter-item">
-      <label class="filter-label">Min Mkt Cap ($B)</label>
-      <input class="filter-input" type="number" id="f-mcap" value="0" min="0" step="1" />
+      <label class="filter-label">Min MCap ($B)</label>
+      <input class="filter-input" type="number" id="f-mcap" value="0" min="0" step="1"/>
     </div>
     <div class="filter-item">
       <label class="filter-label">Min 6M Gain%</label>
-      <input class="filter-input" type="number" id="f-gain" value="" step="5" placeholder="any" />
+      <input class="filter-input" type="number" id="f-gain" value="" step="5" placeholder="any"/>
+    </div>
+    <div class="filter-item">
+      <label class="filter-label">Sector</label>
+      <select class="filter-select" id="f-sector"><option value="">All</option></select>
     </div>
   </div>
 </div>
 
+<div class="progress-wrap" id="progress-wrap">
+  <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <span class="progress-text" id="progress-text">Fetching…</span>
+  <button class="progress-cancel" id="progress-cancel">Cancel</button>
+</div>
+
 <div class="table-wrap">
   <table>
-    <thead>
-      <tr>
-        <th data-col="rank">Rank</th>
-        <th data-col="symbol">Symbol</th>
-        <th class="nosort">Name</th>
-        <th data-col="currentPrice">Price</th>
-        <th data-col="price6m">6M Price</th>
-        <th data-col="gain" class="desc">6M Gain</th>
-        <th data-col="marketCap">Mkt Cap</th>
-        <th data-col="avgVolume">Avg Vol</th>
-        <th data-col="adr">ADR%</th>
-        <th class="nosort" style="min-width:110px"></th>
-        <th class="nosort"></th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th data-col="rank">Rank</th>
+      <th data-col="symbol">Symbol</th>
+      <th class="nosort">Name / Sector</th>
+      <th data-col="currentPrice">Price</th>
+      <th data-col="price6m">6M Price</th>
+      <th data-col="gain" class="desc">6M Gain</th>
+      <th data-col="marketCap">Mkt Cap</th>
+      <th data-col="avgVolume">Avg Vol</th>
+      <th data-col="adr">ADR%</th>
+      <th class="nosort" style="min-width:100px"></th>
+      <th class="nosort"></th>
+    </tr></thead>
     <tbody id="tbody"></tbody>
   </table>
   <div class="empty" id="empty-state" style="display:none">
     <h3>No stocks yet</h3>
-    <p>Paste tickers into the box above and hit <strong>Add</strong>.<br>
-    Prices and 6-month gains are fetched live from Yahoo Finance.<br><br>
+    <p>Type tickers above and hit <strong>Add</strong>, or use <strong>↑ Import CSV</strong> to load a full NASDAQ universe.<br><br>
     Example: <code>NVDA META AVGO CRWD AXON</code></p>
   </div>
 </div>
 
 <div class="footer" id="footer"></div>
 
+<!-- Import Modal -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2>Import NASDAQ Screener CSV</h2>
+      <button class="modal-close" id="modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-icon">📄</div>
+        <strong>Drop CSV file here</strong>
+        <p>or <label class="browse-label" for="file-input">browse to select</label></p>
+        <input type="file" id="file-input" accept=".csv,.txt" style="display:none"/>
+      </div>
+      <div class="import-result" id="import-result"></div>
+      <div class="modal-instructions">
+        <strong>How to export from NASDAQ screener:</strong>
+        <ol>
+          <li>Go to <strong>nasdaq.com/market-activity/stocks/screener</strong></li>
+          <li>Set your filters (exchange, market cap, etc.)</li>
+          <li>Click <strong>Download CSV</strong> at the bottom of the results</li>
+          <li>Drop that file here</li>
+        </ol>
+        <br>
+        The CSV should have columns: <strong>Symbol, Name, Last Sale, Market Cap, Volume, Sector, Industry</strong>.
+        Current prices and sector/industry will be imported instantly. 6-month prices will then be fetched from Yahoo Finance in the background, sorted by market cap so large-caps appear first.
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-// ─── Constants ────────────────────────────────────────────────────────────────
-const STORE_KEY = 'mtrack-v1';
+const STORE_KEY = 'mtrack-v2';
 const PROXY     = 'https://api.allorigins.win/raw?url=';
 const YF_CHART  = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 
 // ─── State ────────────────────────────────────────────────────────────────────
-let state = { sessions: {}, activeId: null, sortCol: 'gain', sortDir: 'desc' };
+let state = { sessions:{}, activeId:null, sortCol:'gain', sortDir:'desc' };
 
 function load() {
-  try { const s = localStorage.getItem(STORE_KEY); if (s) state = { ...state, ...JSON.parse(s) }; } catch {}
-  const ids = Object.keys(state.sessions);
-  if (!ids.length) { const id = newSession('May 2026'); state.activeId = id; }
+  try { const s = localStorage.getItem(STORE_KEY); if (s) state = {...state, ...JSON.parse(s)}; } catch {}
+  // migrate from old key
+  if (!Object.keys(state.sessions).length) {
+    try {
+      const old = localStorage.getItem('mtrack-v1');
+      if (old) { const o = JSON.parse(old); state.sessions = o.sessions || {}; state.activeId = o.activeId; }
+    } catch {}
+  }
+  if (!Object.keys(state.sessions).length) { const id = newSession('May 2026'); state.activeId = id; }
   if (!state.activeId || !state.sessions[state.activeId]) state.activeId = Object.keys(state.sessions)[0];
 }
 
@@ -220,58 +286,116 @@ function persist() { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 
 function newSession(name) {
   const id = 'sess-' + Date.now();
-  state.sessions[id] = { id, name, stocks: {}, createdAt: Date.now() };
+  state.sessions[id] = { id, name, stocks:{}, createdAt: Date.now() };
   return id;
 }
 
 function active() { return state.sessions[state.activeId]; }
 
-// ─── Yahoo Finance fetch ──────────────────────────────────────────────────────
+// ─── Fetch queue ──────────────────────────────────────────────────────────────
+let queue = [], qTotal = 0, qRunning = false, qCancel = false;
+
+function enqueue(symbols, sessionId) {
+  // Sort by market cap descending so large-caps come first
+  const sess = state.sessions[sessionId];
+  const sorted = [...symbols].sort((a, b) => {
+    const ma = sess?.stocks[a]?.marketCap ?? 0;
+    const mb = sess?.stocks[b]?.marketCap ?? 0;
+    return mb - ma;
+  });
+  queue.push(...sorted.map(sym => ({ symbol: sym, sessionId })));
+  qTotal = queue.length;
+  if (!qRunning) runQueue();
+  else updateProgress();
+}
+
+async function runQueue() {
+  qRunning = true; qCancel = false;
+  showProgress();
+  while (queue.length && !qCancel) {
+    const item = queue.shift();
+    await fetchOne(item.symbol, item.sessionId);
+    updateProgress();
+    await delay(250);
+  }
+  qRunning = false;
+  qTotal   = 0;
+  hideProgress();
+  updateFooter();
+}
+
+function cancelQueue() { qCancel = true; queue = []; }
+
+function showProgress() { document.getElementById('progress-wrap').style.display = 'flex'; updateProgress(); }
+function hideProgress() { document.getElementById('progress-wrap').style.display = 'none'; }
+
+function updateProgress() {
+  const done = qTotal - queue.length;
+  const pct  = qTotal ? Math.round(done / qTotal * 100) : 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent =
+    `Fetching 6M prices: ${done} / ${qTotal}` +
+    (queue.length ? ` · ~${Math.round(queue.length * 0.25 / 60)} min remaining` : ' · done');
+}
+
+// ─── Yahoo Finance ────────────────────────────────────────────────────────────
 async function fetchYF(symbol) {
   const yf  = YF_CHART + encodeURIComponent(symbol) + '?range=6mo&interval=1d';
   const url  = PROXY + encodeURIComponent(yf);
-  const r    = await fetch(url, { cache: 'no-store' });
+  const r    = await fetch(url, { cache:'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const json = await r.json();
   if (json.chart?.error) throw new Error(json.chart.error.description || 'API error');
   const res  = json.chart?.result?.[0];
-  if (!res) throw new Error('No data returned');
+  if (!res) throw new Error('No data');
 
   const meta   = res.meta;
   const closes = res.indicators?.adjclose?.[0]?.adjclose || res.indicators?.quote?.[0]?.close || [];
-  const highs  = res.indicators?.quote?.[0]?.high  || [];
-  const lows   = res.indicators?.quote?.[0]?.low   || [];
+  const highs  = res.indicators?.quote?.[0]?.high || [];
+  const lows   = res.indicators?.quote?.[0]?.low  || [];
 
-  // 6m-ago price = first valid close in dataset
   let price6m = null;
   for (let i = 0; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
 
-  // ADR% = avg (high-low)/close over last 20 trading days
   let adrSum = 0, adrN = 0;
   for (let i = Math.max(0, closes.length - 20); i < closes.length; i++) {
     if (highs[i] != null && lows[i] != null && closes[i]) { adrSum += (highs[i] - lows[i]) / closes[i] * 100; adrN++; }
   }
 
-  const cur = meta.regularMarketPrice ?? null;
+  const cur  = meta.regularMarketPrice ?? null;
   const gain = (cur != null && price6m != null && price6m !== 0) ? (cur - price6m) / price6m * 100 : null;
 
   return {
     name:         meta.longName || meta.shortName || symbol,
     currentPrice: cur,
-    price6m,
-    gain,
+    price6m, gain,
     marketCap:    meta.marketCap ?? null,
     avgVolume:    meta.averageVolume || meta.regularMarketVolume || null,
     adr:          adrN ? adrSum / adrN : null,
-    fetchStatus:  'ok',
-    fetchError:   null,
-    lastFetched:  Date.now(),
+    fetchStatus:  'ok', fetchError: null, lastFetched: Date.now(),
   };
 }
 
-// ─── Actions ──────────────────────────────────────────────────────────────────
-let fetching = false;
+async function fetchOne(symbol, sessionId) {
+  const sess = state.sessions[sessionId];
+  if (!sess?.stocks[symbol]) return;
+  sess.stocks[symbol].fetchStatus = 'loading';
+  sess.stocks[symbol].fetchError  = null;
+  if (sessionId === state.activeId) renderTable();
+  try {
+    const data = await fetchYF(symbol);
+    // preserve sector/industry if not returned by YF
+    const existing = sess.stocks[symbol];
+    Object.assign(existing, data);
+  } catch (e) {
+    sess.stocks[symbol].fetchStatus = 'error';
+    sess.stocks[symbol].fetchError  = e.message;
+  }
+  persist();
+  if (sessionId === state.activeId) renderTable();
+}
 
+// ─── Manual ticker add ────────────────────────────────────────────────────────
 async function addTickers() {
   const inp  = document.getElementById('ticker-input');
   const syms = inp.value.trim().toUpperCase().split(/[\s,;]+/).filter(s => /^[A-Z.\-]{1,12}$/.test(s));
@@ -281,97 +405,152 @@ async function addTickers() {
   const toFetch = [];
   for (const sym of syms) {
     if (!sess.stocks[sym]) {
-      sess.stocks[sym] = { symbol: sym, name: sym, currentPrice: null, price6m: null, gain: null, marketCap: null, avgVolume: null, adr: null, buyRank: null, fetchStatus: 'loading', fetchError: null, lastFetched: null };
+      sess.stocks[sym] = blankStock(sym);
       toFetch.push(sym);
     }
   }
-  persist();
-  renderTable();
-  for (const sym of toFetch) { await fetchOne(sym, active().id); await delay(180); }
+  persist(); renderTable();
+  enqueue(toFetch, state.activeId);
 }
 
-async function fetchOne(symbol, sessionId) {
-  const sess = state.sessions[sessionId];
-  if (!sess?.stocks[symbol]) return;
-  sess.stocks[symbol].fetchStatus = 'loading';
-  sess.stocks[symbol].fetchError  = null;
-  if (sessionId === state.activeId) updateRow(symbol);
-  try {
-    const data = await fetchYF(symbol);
-    Object.assign(sess.stocks[symbol], data);
-  } catch (e) {
-    sess.stocks[symbol].fetchStatus = 'error';
-    sess.stocks[symbol].fetchError  = e.message;
-  }
-  persist();
-  if (sessionId === state.activeId) renderTable();
+function blankStock(sym) {
+  return { symbol:sym, name:sym, currentPrice:null, price6m:null, gain:null, marketCap:null, avgVolume:null, adr:null, sector:'', industry:'', buyRank:null, fetchStatus:'pending', fetchError:null, lastFetched:null };
 }
 
-async function refreshAll() {
-  if (fetching) return;
-  fetching = true;
-  const btn = document.getElementById('btn-refresh-all');
-  btn.disabled = true; btn.textContent = '↻ Refreshing…';
+// ─── Refresh all ──────────────────────────────────────────────────────────────
+function refreshAll() {
   const sessId = state.activeId;
   const syms   = Object.keys(state.sessions[sessId]?.stocks || {});
-  for (const sym of syms) { await fetchOne(sym, sessId); await delay(200); }
-  fetching = false;
-  btn.disabled = false; btn.textContent = '↻ Refresh All';
-  updateFooter();
+  if (!syms.length) return;
+  // reset existing fetch statuses
+  syms.forEach(sym => { state.sessions[sessId].stocks[sym].fetchStatus = 'pending'; });
+  persist(); renderTable();
+  qTotal = 0; queue = [];
+  enqueue(syms, sessId);
 }
 
-function removeStock(symbol) {
-  delete active().stocks[symbol];
+// ─── CSV import ───────────────────────────────────────────────────────────────
+function parseCSVLine(line) {
+  const out = []; let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (c === ',' && !inQ) { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+
+function parseNum(s) { return parseFloat(String(s ?? '').replace(/[$,%,\s]/g, '')) || null; }
+
+function importCSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return { added:0, skipped:0, error:'File appears empty or invalid.' };
+
+  const header = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g,''));
+  const col = k => header.indexOf(k);
+
+  // Detect required columns
+  const symIdx  = col('symbol');
+  const nameIdx = col('name');
+  if (symIdx < 0) return { added:0, skipped:0, error:'Could not find a "Symbol" column. Make sure this is a NASDAQ screener CSV.' };
+
+  // Price column: 'lastsale' or 'lastprice' or 'price'
+  const priceIdx = ['lastsale','lastprice','price'].map(k => col(k)).find(i => i >= 0) ?? -1;
+  const mcapIdx  = col('marketcap');
+  const volIdx   = col('volume');
+  const secIdx   = col('sector');
+  const indIdx   = col('industry');
+
+  const sess    = active();
+  let added = 0, skipped = 0;
+  const toFetch = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseCSVLine(lines[i]);
+    const sym = row[symIdx]?.toUpperCase().trim();
+    if (!sym || sym === 'SYMBOL' || !/^[A-Z.\-]{1,12}$/.test(sym)) { skipped++; continue; }
+
+    const price  = priceIdx >= 0  ? parseNum(row[priceIdx])  : null;
+    const mcap   = mcapIdx  >= 0  ? parseNum(row[mcapIdx])   : null;
+    const vol    = volIdx   >= 0  ? parseNum(row[volIdx])    : null;
+    const sector = secIdx   >= 0  ? (row[secIdx]  || '')     : '';
+    const ind    = indIdx   >= 0  ? (row[indIdx]  || '')     : '';
+    const name   = nameIdx  >= 0  ? (row[nameIdx] || sym)    : sym;
+
+    if (sess.stocks[sym]) {
+      // Merge: update metadata but keep buyRank and any fetched price data
+      if (sector) sess.stocks[sym].sector   = sector;
+      if (ind)    sess.stocks[sym].industry = ind;
+      if (name && name !== sym) sess.stocks[sym].name = name;
+      // Only overwrite price if we don't have a live fetch yet
+      if (!sess.stocks[sym].lastFetched) {
+        if (price) sess.stocks[sym].currentPrice = price;
+        if (mcap)  sess.stocks[sym].marketCap    = mcap;
+        if (vol)   sess.stocks[sym].avgVolume     = vol;
+      }
+      skipped++;
+    } else {
+      sess.stocks[sym] = {
+        symbol:sym, name, sector, industry:ind,
+        currentPrice: price, price6m:null, gain:null,
+        marketCap: mcap, avgVolume: vol, adr:null,
+        buyRank:null, fetchStatus:'pending', fetchError:null, lastFetched:null,
+      };
+      toFetch.push(sym);
+      added++;
+    }
+  }
+
   persist();
-  renderTable();
+  renderAll();
+
+  if (toFetch.length) enqueue(toFetch, state.activeId);
+
+  return { added, skipped, error:null };
 }
 
-function setRank(symbol, val) {
-  const s = active().stocks[symbol];
-  if (!s) return;
+// ─── Remove / rank ────────────────────────────────────────────────────────────
+function removeStock(sym) { delete active().stocks[sym]; persist(); renderTable(); }
+
+function setRank(sym, val) {
+  const s = active().stocks[sym]; if (!s) return;
   const n = parseInt(val);
   s.buyRank = (val === '' || isNaN(n) || n < 1 || n > 20) ? null : n;
-  persist();
-  renderTable();
+  persist(); renderTable();
 }
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 function switchSession(id) { state.activeId = id; persist(); renderAll(); }
-
 function deleteSession(id) {
-  const ids = Object.keys(state.sessions);
-  if (ids.length <= 1) return;
+  if (Object.keys(state.sessions).length <= 1) return;
   delete state.sessions[id];
   if (state.activeId === id) state.activeId = Object.keys(state.sessions)[0];
-  persist();
-  renderAll();
+  persist(); renderAll();
 }
 
-// ─── Sort & filter ────────────────────────────────────────────────────────────
-function setSort(col) {
-  state.sortCol = col;
-  state.sortDir = (state.sortCol === col && state.sortDir === 'desc') ? 'asc' : 'desc';
-  // re-detect: if same col, toggle; handled above
-  renderTable();
-}
-
+// ─── Sort / filter ────────────────────────────────────────────────────────────
 function filteredSorted() {
-  const minAdr  = parseFloat(document.getElementById('f-adr').value)  || 0;
-  const minMcap = parseFloat(document.getElementById('f-mcap').value) || 0;
-  const minGain = document.getElementById('f-gain').value.trim() !== '' ? parseFloat(document.getElementById('f-gain').value) : null;
+  const minAdr    = parseFloat(document.getElementById('f-adr').value)  || 0;
+  const minMcap   = parseFloat(document.getElementById('f-mcap').value) || 0;
+  const gainStr   = document.getElementById('f-gain').value.trim();
+  const minGain   = gainStr !== '' ? parseFloat(gainStr) : null;
+  const secFilter = document.getElementById('f-sector').value;
 
   let rows = Object.values(active().stocks).filter(s => {
     if (minAdr  > 0  && (s.adr == null || s.adr < minAdr)) return false;
     if (minMcap > 0  && (s.marketCap == null || s.marketCap / 1e9 < minMcap)) return false;
     if (minGain != null && (s.gain == null || s.gain < minGain)) return false;
+    if (secFilter && s.sector !== secFilter) return false;
     return true;
   });
 
-  const col = state.sortCol;
-  const dir = state.sortDir === 'desc' ? -1 : 1;
+  const col = state.sortCol, dir = state.sortDir === 'desc' ? -1 : 1;
   rows.sort((a, b) => {
     let av = col === 'rank' ? (a.buyRank ?? 9999) : a[col];
     let bv = col === 'rank' ? (b.buyRank ?? 9999) : b[col];
+    // nulls always to bottom regardless of direction
     if (av == null && bv == null) return 0;
     if (av == null) return 1;
     if (bv == null) return -1;
@@ -382,21 +561,20 @@ function filteredSorted() {
 }
 
 // ─── Format ───────────────────────────────────────────────────────────────────
-const fmtPx   = v => v == null ? '—' : '$' + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtGain = v => { if (v == null) return '—'; return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; };
-const fmtMcap = v => { if (v == null) return '—'; if (v >= 1e12) return '$' + (v/1e12).toFixed(2) + 'T'; if (v >= 1e9) return '$' + (v/1e9).toFixed(1) + 'B'; return '$' + (v/1e6).toFixed(0) + 'M'; };
-const fmtVol  = v => { if (v == null) return '—'; if (v >= 1e9) return (v/1e9).toFixed(1) + 'B'; if (v >= 1e6) return (v/1e6).toFixed(1) + 'M'; return (v/1e3).toFixed(0) + 'K'; };
-const fmtAdr  = v => v == null ? '—' : v.toFixed(1) + '%';
-const fmtAge  = ts => { if (!ts) return ''; const m = Math.round((Date.now()-ts)/60000); if (m < 1) return 'just now'; if (m < 60) return m + 'm ago'; return Math.round(m/60) + 'h ago'; };
-const esc     = s  => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtPx   = v => v == null ? '—' : '$' + v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtGain = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+const fmtMcap = v => { if (!v) return '—'; if (v>=1e12) return '$'+(v/1e12).toFixed(2)+'T'; if (v>=1e9) return '$'+(v/1e9).toFixed(1)+'B'; return '$'+(v/1e6).toFixed(0)+'M'; };
+const fmtVol  = v => { if (!v) return '—'; if (v>=1e9) return (v/1e9).toFixed(1)+'B'; if (v>=1e6) return (v/1e6).toFixed(1)+'M'; return (v/1e3).toFixed(0)+'K'; };
+const fmtAdr  = v => v == null ? '—' : v.toFixed(1)+'%';
+const fmtAge  = ts => { if (!ts) return ''; const m=Math.round((Date.now()-ts)/60000); if(m<1)return 'just now'; if(m<60)return m+'m ago'; return Math.round(m/60)+'h ago'; };
+const esc     = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const rankCls = r => !r?'':r<=5?'gold':r<=10?'silver':'bronze';
 
-function rankClass(r) { if (!r) return ''; if (r <= 5) return 'gold'; if (r <= 10) return 'silver'; return 'bronze'; }
-
-function gainBarHTML(gain, maxGain) {
+function gainBar(gain, maxGain) {
   if (gain == null) return '';
-  const pct    = Math.min(Math.abs(gain) / Math.max(maxGain, 1) * 100, 100);
-  const color  = gain >= 0 ? 'var(--green)' : 'var(--red)';
-  return `<div class="gain-bar-track"><div class="gain-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>`;
+  const pct = Math.min(Math.abs(gain)/Math.max(maxGain,1)*100,100).toFixed(1);
+  const col = gain >= 0 ? 'var(--green)' : 'var(--red)';
+  return `<div class="gain-bar-track"><div class="gain-bar-fill" style="width:${pct}%;background:${col}"></div></div>`;
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
@@ -408,9 +586,9 @@ function renderSessions() {
   bar.innerHTML = sess.map(s => {
     const n = Object.keys(s.stocks).length;
     const cnt = n ? ` <span style="opacity:.5;font-weight:400">(${n})</span>` : '';
-    return `<button class="session-tab ${s.id === state.activeId ? 'active' : ''}" data-id="${s.id}">
+    return `<button class="session-tab ${s.id===state.activeId?'active':''}" data-id="${s.id}">
       ${esc(s.name)}${cnt}
-      <span class="session-del" data-del="${s.id}" title="Delete session">×</span>
+      <span class="session-del" data-del="${s.id}" title="Delete">×</span>
     </button>`;
   }).join('') + `<button class="btn-add-session" id="btn-add-sess2">+ New Session</button>`;
 }
@@ -420,11 +598,12 @@ function renderTable() {
   const empty = document.getElementById('empty-state');
   const rows  = filteredSorted();
 
-  // Sort indicators
   document.querySelectorAll('th[data-col]').forEach(th => {
     th.classList.remove('asc','desc');
     if (th.dataset.col === state.sortCol) th.classList.add(state.sortDir);
   });
+
+  populateSectorFilter();
 
   const noStocks = !Object.keys(active().stocks).length;
   empty.style.display = (noStocks || !rows.length) ? 'block' : 'none';
@@ -433,56 +612,51 @@ function renderTable() {
   const maxGain = Math.max(...rows.map(s => s.gain != null ? Math.abs(s.gain) : 0), 1);
 
   tbody.innerHTML = rows.map(s => {
-    const rk  = s.buyRank;
-    const rkC = rankClass(rk);
     const gainCls = s.gain == null ? '' : s.gain >= 0 ? 'pos' : 'neg';
+    const rk = s.buyRank;
 
     let statusHTML = '';
-    if (s.fetchStatus === 'loading') {
-      statusHTML = '<span class="spinner"></span>';
-    } else if (s.fetchStatus === 'error') {
-      statusHTML = `<span class="err-txt" title="${esc(s.fetchError)}">✗ ${esc(s.fetchError)}</span>`;
-    } else if (s.lastFetched) {
-      statusHTML = `<span class="ok-txt">${fmtAge(s.lastFetched)}</span>`;
-    }
+    if      (s.fetchStatus === 'loading') statusHTML = '<span class="spinner"></span>';
+    else if (s.fetchStatus === 'error')   statusHTML = `<span class="err-txt" title="${esc(s.fetchError)}">✗ ${esc(s.fetchError)}</span>`;
+    else if (s.fetchStatus === 'pending') statusHTML = '<span class="pending-txt">queued</span>';
+    else if (s.lastFetched)               statusHTML = `<span class="ok-txt">${fmtAge(s.lastFetched)}</span>`;
+
+    const sectorLine = [s.sector, s.industry].filter(Boolean).join(' · ');
 
     return `<tr data-sym="${esc(s.symbol)}">
-      <td><span class="rank-badge ${rkC}" data-rank-sym="${esc(s.symbol)}" title="Click to set rank 1–20">${rk ?? '—'}</span></td>
+      <td><span class="rank-badge ${rankCls(rk)}" data-rank-sym="${esc(s.symbol)}">${rk ?? '—'}</span></td>
       <td><div class="sym">${esc(s.symbol)}</div></td>
-      <td><div class="name" title="${esc(s.name)}">${esc(s.name)}</div></td>
+      <td>
+        <div class="co-name" title="${esc(s.name)}">${esc(s.name)}</div>
+        ${sectorLine ? `<div class="sector-tag">${esc(sectorLine)}</div>` : ''}
+      </td>
       <td>${fmtPx(s.currentPrice)}</td>
       <td style="color:var(--text2)">${fmtPx(s.price6m)}</td>
-      <td><div class="gain-wrap"><span class="${gainCls}">${fmtGain(s.gain)}</span>${gainBarHTML(s.gain, maxGain)}</div></td>
+      <td><div class="gain-wrap"><span class="${gainCls}">${fmtGain(s.gain)}</span>${gainBar(s.gain, maxGain)}</div></td>
       <td>${fmtMcap(s.marketCap)}</td>
       <td>${fmtVol(s.avgVolume)}</td>
       <td>${fmtAdr(s.adr)}</td>
       <td style="white-space:nowrap">${statusHTML} <button class="row-refresh" data-refresh="${esc(s.symbol)}">↻</button></td>
-      <td><button class="remove-btn" data-remove="${esc(s.symbol)}" title="Remove">×</button></td>
+      <td><button class="remove-btn" data-remove="${esc(s.symbol)}">×</button></td>
     </tr>`;
   }).join('');
 
   updateFooter();
 }
 
-function updateRow(symbol) {
-  const s = active().stocks[symbol];
-  if (!s) return;
-  const row = document.querySelector(`tr[data-sym="${esc(symbol)}"]`);
-  if (!row) return;
-  // Just re-render status cell only during loading to avoid losing rank input state
-  const statusCell = row.querySelectorAll('td')[9];
-  if (statusCell) {
-    let h = '<span class="spinner"></span>';
-    statusCell.innerHTML = h + ` <button class="row-refresh" data-refresh="${esc(symbol)}">↻</button>`;
-  }
+function populateSectorFilter() {
+  const sel  = document.getElementById('f-sector');
+  const cur  = sel.value;
+  const secs = [...new Set(Object.values(active().stocks).map(s => s.sector).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All sectors</option>' + secs.map(s => `<option value="${esc(s)}" ${s===cur?'selected':''}>${esc(s)}</option>`).join('');
 }
 
-function startRankEdit(symbol) {
-  const row = document.querySelector(`tr[data-sym="${esc(symbol)}"]`);
+function startRankEdit(sym) {
+  const row = document.querySelector(`tr[data-sym="${esc(sym)}"]`);
   if (!row) return;
   const badge = row.querySelector('.rank-badge');
   if (!badge) return;
-  const s   = active().stocks[symbol];
+  const s = active().stocks[sym];
   const inp = document.createElement('input');
   inp.type = 'number'; inp.className = 'rank-input';
   inp.min = 1; inp.max = 20;
@@ -490,65 +664,79 @@ function startRankEdit(symbol) {
   inp.placeholder = '1–20';
   badge.replaceWith(inp);
   inp.focus(); inp.select();
-  const commit = () => setRank(symbol, inp.value.trim());
+  const commit = () => setRank(sym, inp.value.trim());
   inp.addEventListener('blur', commit);
   inp.addEventListener('keydown', e => {
     if (e.key === 'Enter')  { e.preventDefault(); commit(); }
-    if (e.key === 'Escape') { renderTable(); }
-    if (e.key === 'Delete' || e.key === 'Backspace') { /* allow clearing */ }
+    if (e.key === 'Escape') renderTable();
   });
 }
 
 function updateFooter() {
-  const stocks   = Object.values(active().stocks);
-  const fetched  = stocks.filter(s => s.lastFetched).length;
-  const errs     = stocks.filter(s => s.fetchStatus === 'error').length;
-  const loading  = stocks.filter(s => s.fetchStatus === 'loading').length;
-  const footer   = document.getElementById('footer');
+  const stocks  = Object.values(active().stocks);
+  const fetched = stocks.filter(s => s.lastFetched).length;
+  const errs    = stocks.filter(s => s.fetchStatus === 'error').length;
+  const pending = stocks.filter(s => s.fetchStatus === 'pending' || s.fetchStatus === 'loading').length;
+  const footer  = document.getElementById('footer');
   if (!stocks.length) { footer.textContent = ''; return; }
-  let parts = [`${fetched}/${stocks.length} fetched`];
-  if (loading) parts.push(`${loading} loading`);
-  if (errs)    parts.push(`${errs} error${errs > 1 ? 's' : ''}`);
+  const parts = [`${fetched}/${stocks.length} fetched`];
+  if (pending) parts.push(`${pending} queued/loading`);
+  if (errs)    parts.push(`${errs} error${errs>1?'s':''}`);
   const ts = stocks.map(s => s.lastFetched).filter(Boolean);
   if (ts.length) parts.push(`updated ${fmtAge(Math.max(...ts))}`);
-  parts.push('Prices from Yahoo Finance · delayed ~15 min during market hours');
+  parts.push('Yahoo Finance · ~15 min delay during market hours');
   footer.textContent = parts.join(' · ');
 }
 
-// ─── Event delegation ─────────────────────────────────────────────────────────
+// ─── Modal ────────────────────────────────────────────────────────────────────
+function openModal()  { document.getElementById('modal-bg').classList.add('open'); }
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+  document.getElementById('import-result').style.display = 'none';
+  document.getElementById('file-input').value = '';
+}
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const result = importCSV(e.target.result);
+    const el = document.getElementById('import-result');
+    if (result.error) {
+      el.className = 'import-result warn'; el.textContent = result.error;
+    } else {
+      el.className = 'import-result ok';
+      el.textContent = `✓ ${result.added} stocks imported. ${result.skipped} already existed (metadata updated). Fetching 6M prices in background…`;
+    }
+    el.style.display = 'block';
+    setTimeout(closeModal, 3000);
+  };
+  reader.readAsText(file);
+}
+
+// ─── Event wiring ─────────────────────────────────────────────────────────────
 document.addEventListener('click', e => {
-  // Session tabs
   const tab = e.target.closest('.session-tab');
   if (tab && !e.target.closest('.session-del')) { switchSession(tab.dataset.id); return; }
-
-  // Delete session
   const del = e.target.closest('.session-del');
   if (del) { deleteSession(del.dataset.del); return; }
-
-  // New session button (bar)
   if (e.target.id === 'btn-add-sess2' || e.target.id === 'btn-new-session') {
     document.getElementById('new-session-form').style.display = 'flex';
-    document.getElementById('ns-name').focus();
-    return;
+    document.getElementById('ns-name').focus(); return;
   }
-
-  // Rank badge
   const rb = e.target.closest('[data-rank-sym]');
   if (rb) { startRankEdit(rb.dataset.rankSym); return; }
-
-  // Per-row refresh
   const rr = e.target.closest('[data-refresh]');
-  if (rr) { fetchOne(rr.dataset.refresh, state.activeId); return; }
-
-  // Remove stock
+  if (rr) { enqueue([rr.dataset.refresh], state.activeId); return; }
   const rem = e.target.closest('[data-remove]');
   if (rem) { removeStock(rem.dataset.remove); return; }
+  if (e.target.id === 'modal-bg') closeModal();
 });
 
 document.querySelectorAll('th[data-col]').forEach(th => {
   th.addEventListener('click', () => {
     const col = th.dataset.col;
-    if (state.sortCol === col) { state.sortDir = state.sortDir === 'desc' ? 'asc' : 'desc'; }
+    if (state.sortCol === col) state.sortDir = state.sortDir === 'desc' ? 'asc' : 'desc';
     else { state.sortCol = col; state.sortDir = col === 'symbol' ? 'asc' : 'desc'; }
     renderTable();
   });
@@ -556,15 +744,22 @@ document.querySelectorAll('th[data-col]').forEach(th => {
 
 document.getElementById('btn-add').addEventListener('click', addTickers);
 document.getElementById('ticker-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTickers(); });
-
 document.getElementById('btn-refresh-all').addEventListener('click', refreshAll);
+document.getElementById('btn-import').addEventListener('click', openModal);
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('progress-cancel').addEventListener('click', cancelQueue);
+
+document.getElementById('file-input').addEventListener('change', e => handleFile(e.target.files[0]));
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('click', () => document.getElementById('file-input').click());
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
 
 document.getElementById('ns-create').addEventListener('click', () => {
-  const name = document.getElementById('ns-name').value.trim();
-  if (!name) return;
-  const id = newSession(name);
-  state.activeId = id;
-  persist();
+  const name = document.getElementById('ns-name').value.trim(); if (!name) return;
+  const id = newSession(name); state.activeId = id; persist();
   document.getElementById('new-session-form').style.display = 'none';
   document.getElementById('ns-name').value = '';
   renderAll();
@@ -578,11 +773,10 @@ document.getElementById('ns-name').addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('ns-cancel').click();
 });
 
-['f-adr','f-mcap','f-gain'].forEach(id => document.getElementById(id).addEventListener('input', renderTable));
+['f-adr','f-mcap','f-gain','f-sector'].forEach(id => document.getElementById(id).addEventListener('input', renderTable));
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
-// ─── Boot ─────────────────────────────────────────────────────────────────────
 load();
 renderAll();
 </script>
