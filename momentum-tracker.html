@@ -162,10 +162,12 @@ tr:hover td{background:var(--bg2)}
 .import-result{margin-top:14px;padding:10px 14px;border-radius:var(--radius);font-size:13px;display:none}
 .import-result.ok{background:rgba(29,158,117,.1);color:var(--green)}
 .import-result.warn{background:rgba(226,75,74,.08);color:var(--red)}
+#tip{position:fixed;background:#1e2533;color:#cdd0d4;border:1px solid #3a4055;border-radius:5px;padding:8px 11px;font-size:12px;line-height:1.55;max-width:300px;z-index:9999;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.45);display:none;white-space:pre-wrap}
 </style>
 </head>
 <body>
 
+<div id="tip"></div>
 <div class="header">
   <div>
     <h1>Momentum Tracker</h1>
@@ -226,16 +228,16 @@ tr:hover td{background:var(--bg2)}
 <div class="table-wrap">
   <table>
     <thead><tr>
-      <th data-col="rank" title="Your personal buy priority rank (1–20). Click a rank badge to edit. Top 5 = gold, 6–10 = silver, 11–20 = blue.">Rank <i class="info">i</i></th>
-      <th data-col="symbol" title="Ticker symbol">Symbol</th>
-      <th class="nosort" title="Company name, sector, and industry from the NASDAQ screener CSV">Name / Sector <i class="info">i</i></th>
-      <th data-col="currentPrice" title="Latest price from Yahoo Finance (~15 min delay during market hours)">Price <i class="info">i</i></th>
-      <th data-col="price6m" title="Price approximately 6 months ago (first close in the 1-year dataset fetched from Yahoo Finance)">6M Price <i class="info">i</i></th>
-      <th data-col="gain" class="desc" title="Percentage gain from 6 months ago to today. This is the core momentum signal — stocks are sorted by this by default.">6M Gain <i class="info">i</i></th>
-      <th data-col="marketCap" title="Market capitalisation. Used to prioritise the fetch queue — large-caps get their data first.">Mkt Cap <i class="info">i</i></th>
-      <th data-col="avgVolume" title="Average daily trading volume reported by Yahoo Finance. Higher volume = more liquidity.">Avg Vol <i class="info">i</i></th>
-      <th data-col="adr" title="Average Daily Range: average of (High − Low) / Close over the last 20 trading days, as a percentage. Measures typical intraday volatility. ~3–6% is a sweet spot for momentum trades — too low means sluggish, too high means erratic.">ADR% <i class="info">i</i></th>
-      <th data-col="tt" title="Minervini Trend Template score (0–8). Hover each badge for a per-criterion breakdown. Green = 8/8 or 7/8, gold = 5–6, grey = below 5. Criterion 8 (RS Rank) is approximated as the percentile of 12-month gain within your loaded universe.">TT <i class="info">i</i></th>
+      <th data-col="rank" data-tip="Your personal buy priority rank (1–20). Click a rank badge to edit. Top 5 = gold, 6–10 = silver, 11–20 = blue.">Rank <i class="info">i</i></th>
+      <th data-col="symbol" data-tip="Ticker symbol">Symbol</th>
+      <th class="nosort" data-tip="Company name, sector, and industry from the NASDAQ screener">Name / Sector <i class="info">i</i></th>
+      <th data-col="currentPrice" data-tip="Latest price from Yahoo Finance (~15 min delay during market hours)">Price <i class="info">i</i></th>
+      <th data-col="price6m" data-tip="Price approximately 6 months ago (first close in the weekly dataset fetched from Yahoo Finance)">6M Price <i class="info">i</i></th>
+      <th data-col="gain" class="desc" data-tip="Percentage gain from 6 months ago to today. This is the core momentum signal — stocks are sorted by this by default.">6M Gain <i class="info">i</i></th>
+      <th data-col="marketCap" data-tip="Market capitalisation. Used to prioritise the fetch queue — large-caps get their data first.">Mkt Cap <i class="info">i</i></th>
+      <th data-col="avgVolume" data-tip="Average daily trading volume reported by Yahoo Finance. Higher volume = more liquidity.">Avg Vol <i class="info">i</i></th>
+      <th data-col="adr" data-tip="Average Weekly Range: average of (High − Low) / Close over the last 4 weeks, as a percentage. Measures typical volatility. ~3–6% is a sweet spot for momentum trades.">ADR% <i class="info">i</i></th>
+      <th data-col="tt" data-tip="Minervini Trend Template score (0–8). Hover each badge for a per-criterion breakdown. Green = 8/8 or 7/8, gold = 5–6, grey = below 5. Criterion 8 (RS Rank) is the percentile of 12-month gain within your loaded universe.">TT <i class="info">i</i></th>
       <th class="nosort" style="min-width:100px"></th>
       <th class="nosort"></th>
     </tr></thead>
@@ -792,7 +794,7 @@ function ttBadge(s) {
     if (i === 7) line += s.rsRank != null ? ` (rank: ${s.rsRank})` : ' (rank: N/A)';
     return line;
   }).join('\n');
-  return `<span class="tt-badge ${cls}" title="${esc(tooltip)}">${score}/8</span>`;
+  return `<span class="tt-badge ${cls}" data-tip="${esc(tooltip)}">${score}/8</span>`;
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
@@ -1143,6 +1145,48 @@ document.getElementById('univ-cancel-btn').addEventListener('click', () => { uni
 document.getElementById('univ-modal-bg').addEventListener('click', e => { if (e.target.id === 'univ-modal-bg') closeUnivModal(); });
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
+
+// ─── Custom tooltip ───────────────────────────────────────────────────────────
+(function() {
+  const tip = document.getElementById('tip');
+  let timer = null;
+
+  function show(text, e) {
+    tip.textContent = text;
+    tip.style.display = 'block';
+    move(e);
+  }
+  function hide() {
+    tip.style.display = 'none';
+    clearTimeout(timer);
+    timer = null;
+  }
+  function move(e) {
+    const pad = 14, W = window.innerWidth, H = window.innerHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + tip.offsetWidth  > W - pad) x = e.clientX - tip.offsetWidth  - pad;
+    if (y + tip.offsetHeight > H - pad) y = e.clientY - tip.offsetHeight - pad;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]');
+    clearTimeout(timer);
+    if (!el) { hide(); return; }
+    const text = el.dataset.tip;
+    if (!text) { hide(); return; }
+    timer = setTimeout(() => show(text, e), 180);
+  });
+  document.addEventListener('mousemove', e => {
+    if (tip.style.display !== 'none') move(e);
+  });
+  document.addEventListener('mouseout', e => {
+    if (!e.target.closest('[data-tip]')) return;
+    clearTimeout(timer);
+    hide();
+  });
+})();
 
 load();
 renderAll();
