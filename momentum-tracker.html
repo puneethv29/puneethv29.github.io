@@ -163,6 +163,31 @@ tr:hover td{background:var(--bg2)}
 .import-result.ok{background:rgba(29,158,117,.1);color:var(--green)}
 .import-result.warn{background:rgba(226,75,74,.08);color:var(--red)}
 #tip{position:fixed;background:#1e2533;color:#cdd0d4;border:1px solid #3a4055;border-radius:5px;padding:8px 11px;font-size:12px;line-height:1.55;max-width:300px;z-index:9999;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.45);display:none;white-space:pre-wrap}
+
+@media (max-width:600px){
+  .header{padding:10px 14px}
+  .header-sub{display:none}
+  .sessions-bar{padding:6px 14px}
+  .new-session-form{padding:8px 14px}
+  .toolbar{padding:8px 14px;gap:6px}
+  .filters{margin-left:0;width:100%}
+  .progress-wrap{padding:8px 14px}
+  .table-wrap{padding:0 0 28px}
+  .footer{padding:8px 14px}
+  /* Finger-friendly touch targets */
+  .btn,.icon-btn,.progress-cancel{min-height:38px}
+  /* Hide less-critical columns: rank, 6M price, mkt cap, avg vol, ADR% */
+  table th:nth-child(1),table td:nth-child(1),
+  table th:nth-child(5),table td:nth-child(5),
+  table th:nth-child(7),table td:nth-child(7),
+  table th:nth-child(8),table td:nth-child(8),
+  table th:nth-child(9),table td:nth-child(9){display:none}
+  /* Sticky symbol column — rank is hidden so symbol is leftmost */
+  table th:nth-child(2),table td:nth-child(2){position:sticky;left:0;background:var(--bg);z-index:1;box-shadow:2px 0 4px rgba(0,0,0,.06)}
+  tr:hover td:nth-child(2){background:var(--bg2)}
+  /* Tooltip: full-width minus padding on small screens */
+  #tip{max-width:calc(100vw - 28px)}
+}
 </style>
 </head>
 <body>
@@ -1146,46 +1171,75 @@ document.getElementById('univ-modal-bg').addEventListener('click', e => { if (e.
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
-// ─── Custom tooltip ───────────────────────────────────────────────────────────
+// ─── Custom tooltip (hover on desktop, tap on mobile) ─────────────────────────
 (function() {
   const tip = document.getElementById('tip');
-  let timer = null;
+  let showTimer = null, hideTimer = null, touchMode = false;
 
-  function show(text, e) {
+  function setText(text) {
     tip.textContent = text;
     tip.style.display = 'block';
-    move(e);
   }
   function hide() {
     tip.style.display = 'none';
-    clearTimeout(timer);
-    timer = null;
+    clearTimeout(showTimer);
+    clearTimeout(hideTimer);
   }
-  function move(e) {
+
+  // Desktop: follow cursor
+  function moveCursor(x, y) {
     const pad = 14, W = window.innerWidth, H = window.innerHeight;
-    let x = e.clientX + pad, y = e.clientY + pad;
-    if (x + tip.offsetWidth  > W - pad) x = e.clientX - tip.offsetWidth  - pad;
-    if (y + tip.offsetHeight > H - pad) y = e.clientY - tip.offsetHeight - pad;
-    tip.style.left = x + 'px';
-    tip.style.top  = y + 'px';
+    let left = x + pad, top = y + pad;
+    if (left + tip.offsetWidth  > W - pad) left = x - tip.offsetWidth  - pad;
+    if (top  + tip.offsetHeight > H - pad) top  = y - tip.offsetHeight - pad;
+    if (top < 8) top = 8;
+    tip.style.left = left + 'px';
+    tip.style.top  = top  + 'px';
   }
 
   document.addEventListener('mouseover', e => {
+    if (touchMode) return;
     const el = e.target.closest('[data-tip]');
-    clearTimeout(timer);
-    if (!el) { hide(); return; }
-    const text = el.dataset.tip;
-    if (!text) { hide(); return; }
-    timer = setTimeout(() => show(text, e), 180);
+    clearTimeout(showTimer);
+    if (!el || !el.dataset.tip) { hide(); return; }
+    showTimer = setTimeout(() => {
+      setText(el.dataset.tip);
+      moveCursor(e.clientX, e.clientY);
+    }, 180);
   });
   document.addEventListener('mousemove', e => {
-    if (tip.style.display !== 'none') move(e);
+    if (touchMode || tip.style.display === 'none') return;
+    moveCursor(e.clientX, e.clientY);
   });
   document.addEventListener('mouseout', e => {
-    if (!e.target.closest('[data-tip]')) return;
-    clearTimeout(timer);
+    if (touchMode || !e.target.closest('[data-tip]')) return;
+    clearTimeout(showTimer);
     hide();
   });
+
+  // Mobile: tap to show anchored to element, tap elsewhere to dismiss
+  function posElement(el) {
+    const rect = el.getBoundingClientRect();
+    const pad  = 8, W = window.innerWidth;
+    const tipW = tip.offsetWidth;
+    let left = Math.max(pad, Math.min(rect.left + rect.width / 2 - tipW / 2, W - tipW - pad));
+    let top  = rect.top - tip.offsetHeight - pad;
+    if (top < 8) top = rect.bottom + pad; // flip below if not enough room above
+    tip.style.left = left + 'px';
+    tip.style.top  = top  + 'px';
+  }
+
+  document.addEventListener('touchstart', e => {
+    touchMode = true;
+    clearTimeout(showTimer);
+    clearTimeout(hideTimer);
+    const el = e.target.closest('[data-tip]');
+    if (!el || !el.dataset.tip) { hide(); return; }
+    if (tip.style.display !== 'none') { hide(); return; } // second tap dismisses
+    setText(el.dataset.tip);
+    posElement(el);
+    hideTimer = setTimeout(hide, 5000); // auto-dismiss after 5s
+  }, { passive: true });
 })();
 
 load();
