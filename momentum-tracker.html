@@ -326,7 +326,11 @@ tr:hover td{background:var(--bg2)}
 
 <script>
 const STORE_KEY = 'mtrack-v2';
-const PROXIES        = ['https://api.allorigins.win/raw?url='];
+const PROXIES        = [
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
+];
 const PROXY          = PROXIES[0];
 const YF_CHART       = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 const YF_QUOTE       = 'https://query1.finance.yahoo.com/v7/finance/quote';
@@ -456,13 +460,13 @@ function computeRSRanks(sessId) {
   Object.values(sess.stocks).forEach(s => { if (s.gain12m == null) s.rsRank = null; });
 }
 
-// ─── Safe JSON fetch: direct → each proxy, validates it's actually JSON ───────
-async function fetchJSONSafe(url) {
+// ─── Safe JSON fetch: validates response is actually JSON before parsing ───────
+async function fetchJSONSafe(url, { skipDirect = false } = {}) {
   const attempts = [
-    () => fetch(url, { cache: 'no-store' }),
+    ...(!skipDirect ? [() => fetch(url, { cache: 'no-store' })] : []),
     ...PROXIES.map(p => () => fetch(p + encodeURIComponent(url), { cache: 'no-store' })),
   ];
-  let lastErr = new Error('All fetch attempts failed for ' + url);
+  let lastErr = new Error('All fetch attempts failed');
   for (const attempt of attempts) {
     try {
       const r = await attempt();
@@ -470,7 +474,7 @@ async function fetchJSONSafe(url) {
       const text = await r.text();
       const t = text.trimStart();
       if (t[0] !== '{' && t[0] !== '[') {
-        lastErr = new Error('Server returned HTML instead of JSON — the proxy may be down or rate-limited. Try again in a moment.');
+        lastErr = new Error('Proxy returned HTML — all proxies may be down or rate-limited. Wait a moment and try again.');
         continue;
       }
       return JSON.parse(text);
@@ -489,7 +493,7 @@ async function fetchYF(symbol) {
     try {
       if (attempt > 0) await delay(1200 * attempt);
       const yf   = hosts[attempt % 2] + path;
-      const json = await fetchJSONSafe(yf);
+      const json = await fetchJSONSafe(yf, { skipDirect: true });
       if (json.chart?.error) throw new Error(json.chart.error.description || 'API error');
       const res = json.chart?.result?.[0];
       if (!res) throw new Error('No data');
@@ -991,15 +995,19 @@ async function buildUniverse() {
   univCancel = false;
 
   try {
-    // 1. Fetch EDGAR ticker list (with-exchange version preferred, falls back to basic)
+    // 1. Fetch EDGAR ticker list — SEC sets CORS: *, so try direct first (no proxy)
     univStatus('Fetching ticker list from SEC EDGAR…', 2);
     let edgarData, hasExchange = true;
     try {
-      edgarData = await fetchJSONSafe(EDGAR_EXCH_URL);
+      edgarData = await fetchJSONSafe(EDGAR_EXCH_URL); // has exchange field
     } catch {
-      univStatus('Exchange list unavailable — falling back to full ticker list…', 3);
-      edgarData = await fetchJSONSafe(EDGAR_BASE_URL);
-      hasExchange = false;
+      univStatus('Falling back to basic EDGAR ticker list…', 3);
+      try {
+        edgarData = await fetchJSONSafe(EDGAR_BASE_URL); // no exchange field, but definitely exists
+        hasExchange = false;
+      } catch (e2) {
+        throw new Error('Could not load ticker list from SEC EDGAR. Check your internet connection and try again. (' + e2.message + ')');
+      }
     }
 
     // Build ticker list
@@ -1029,7 +1037,7 @@ async function buildUniverse() {
 
       try {
         const yfUrl = `${YF_QUOTE}?symbols=${encodeURIComponent(symbols)}&fields=marketCap,regularMarketPrice,shortName,longName`;
-        const json  = await fetchJSONSafe(yfUrl);
+        const json  = await fetchJSONSafe(yfUrl, { skipDirect: true });
         const quotes = json?.quoteResponse?.result || [];
         for (const q of quotes) {
           if (q.marketCap && q.marketCap >= minMcap) {
