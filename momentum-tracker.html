@@ -186,7 +186,7 @@ tr:hover td{background:var(--bg2)}
   <input class="ticker-input" id="ticker-input" placeholder="Add tickers: NVDA AAPL MSFT …" autocomplete="off"/>
   <button class="btn btn-primary" id="btn-add">Add</button>
   <button class="icon-btn" id="btn-import">↑ Import CSV</button>
-  <button class="icon-btn" id="btn-fmp">⬇ Load Universe (FMP)</button>
+  <button class="icon-btn" id="btn-fmp">⬇ Load Universe</button>
   <button class="icon-btn" id="btn-refresh-all">↻ Refresh All</button>
   <div class="filters">
     <div class="filter-item">
@@ -281,26 +281,21 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
-<!-- FMP Modal -->
-<div class="modal-bg" id="fmp-modal-bg">
-  <div class="modal" style="max-width:420px">
+<!-- Universe Builder Modal -->
+<div class="modal-bg" id="univ-modal-bg">
+  <div class="modal" style="max-width:440px">
     <div class="modal-hdr">
-      <h2>Load Universe from FMP</h2>
-      <button class="modal-close" id="fmp-modal-close">×</button>
+      <h2>Build Stock Universe</h2>
+      <button class="modal-close" id="univ-modal-close">×</button>
     </div>
     <div class="modal-body">
-      <div style="margin-bottom:14px">
-        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">
-          API Key
-          <a href="https://financialmodelingprep.com/developer/docs/" target="_blank" style="color:var(--blue);margin-left:6px;font-size:11px">Get free key →</a>
-        </label>
-        <input class="text-input" id="fmp-key-input" placeholder="Paste your FMP API key" style="width:100%"/>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">Saved in your browser. Free tier: 250 requests/day.</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+        Fetches all tickers from <strong style="color:var(--text)">SEC EDGAR</strong>, then checks market cap via <strong style="color:var(--text)">Yahoo Finance</strong> to filter down to your threshold. No API key needed. Takes ~30–60 seconds.
       </div>
       <div style="display:flex;gap:10px;margin-bottom:16px">
         <div style="flex:1">
           <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Min Market Cap</label>
-          <select class="filter-select" id="fmp-mcap" style="width:100%">
+          <select class="filter-select" id="univ-mcap" style="width:100%">
             <option value="300000000">$300M+</option>
             <option value="1000000000">$1B+</option>
             <option value="2000000000">$2B+</option>
@@ -309,24 +304,33 @@ tr:hover td{background:var(--bg2)}
         </div>
         <div style="flex:1">
           <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Exchange</label>
-          <select class="filter-select" id="fmp-exchange" style="width:100%">
-            <option value="NYSE,NASDAQ">NYSE + NASDAQ</option>
-            <option value="NASDAQ">NASDAQ only</option>
-            <option value="NYSE">NYSE only</option>
+          <select class="filter-select" id="univ-exchange" style="width:100%">
+            <option value="nasdaq,nyse">NYSE + NASDAQ</option>
+            <option value="nasdaq">NASDAQ only</option>
+            <option value="nyse">NYSE only</option>
           </select>
         </div>
       </div>
-      <button class="btn btn-primary" id="fmp-load-btn" style="width:100%;padding:8px">Load Universe</button>
-      <div class="import-result" id="fmp-result"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-primary" id="univ-build-btn" style="flex:1;padding:8px">Build Universe</button>
+        <button class="btn btn-ghost"   id="univ-cancel-btn" style="display:none">Cancel</button>
+      </div>
+      <div id="univ-progress" style="display:none;margin-bottom:10px">
+        <div class="progress-track" style="max-width:100%;margin-bottom:6px"><div class="progress-fill" id="univ-progress-fill" style="width:0%"></div></div>
+        <div id="univ-progress-text" style="font-size:12px;color:var(--text2)"></div>
+      </div>
+      <div class="import-result" id="univ-result"></div>
     </div>
   </div>
 </div>
 
 <script>
 const STORE_KEY = 'mtrack-v2';
-const PROXY     = 'https://api.allorigins.win/raw?url=';
+const PROXIES   = ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?url='];
+const PROXY     = PROXIES[0];
 const YF_CHART  = 'https://query1.finance.yahoo.com/v8/finance/chart/';
-const FMP_BASE  = 'https://financialmodelingprep.com/api/v3/stock-screener';
+const YF_QUOTE  = 'https://query1.finance.yahoo.com/v7/finance/quote';
+const EDGAR_URL = 'https://www.sec.gov/files/company_tickers_exchange.json';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let state = { sessions:{}, activeId:null, sortCol:'gain', sortDir:'desc' };
@@ -451,63 +455,74 @@ function computeRSRanks(sessId) {
   Object.values(sess.stocks).forEach(s => { if (s.gain12m == null) s.rsRank = null; });
 }
 
+// ─── Proxy fetch with fallback ────────────────────────────────────────────────
+async function proxyFetch(targetUrl, attempt = 0) {
+  const proxy = PROXIES[attempt % PROXIES.length];
+  const r = await fetch(proxy + encodeURIComponent(targetUrl), { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r;
+}
+
 // ─── Yahoo Finance ────────────────────────────────────────────────────────────
 async function fetchYF(symbol) {
-  const yf  = YF_CHART + encodeURIComponent(symbol) + '?range=1y&interval=1d';
-  const url  = PROXY + encodeURIComponent(yf);
-  const r    = await fetch(url, { cache:'no-store' });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  const json = await r.json();
-  if (json.chart?.error) throw new Error(json.chart.error.description || 'API error');
-  const res  = json.chart?.result?.[0];
-  if (!res) throw new Error('No data');
+  const path = encodeURIComponent(symbol) + '?range=1y&interval=1d';
+  // try query1 then query2 as alternate host, each through rotating proxy
+  const hosts = ['https://query1.finance.yahoo.com/v8/finance/chart/', 'https://query2.finance.yahoo.com/v8/finance/chart/'];
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (attempt > 0) await delay(1200 * attempt);
+      const yf = hosts[attempt % 2] + path;
+      const r  = await proxyFetch(yf, attempt);
+      const json = await r.json();
+      if (json.chart?.error) throw new Error(json.chart.error.description || 'API error');
+      const res = json.chart?.result?.[0];
+      if (!res) throw new Error('No data');
 
-  const meta   = res.meta;
-  const closes = res.indicators?.adjclose?.[0]?.adjclose || res.indicators?.quote?.[0]?.close || [];
-  const highs  = res.indicators?.quote?.[0]?.high || [];
-  const lows   = res.indicators?.quote?.[0]?.low  || [];
+      const meta   = res.meta;
+      const closes = res.indicators?.adjclose?.[0]?.adjclose || res.indicators?.quote?.[0]?.close || [];
+      const highs  = res.indicators?.quote?.[0]?.high || [];
+      const lows   = res.indicators?.quote?.[0]?.low  || [];
 
-  // 6M price: close from ~126 trading days ago (half of 252)
-  const valid = closes.filter(c => c != null);
-  let price6m = null;
-  const halfIdx = Math.max(0, closes.length - 126);
-  for (let i = halfIdx; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
-  if (!price6m) for (let i = 0; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
+      const valid = closes.filter(c => c != null);
+      let price6m = null;
+      const halfIdx = Math.max(0, closes.length - 126);
+      for (let i = halfIdx; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
+      if (!price6m) for (let i = 0; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
 
-  // 12M price: first valid close
-  const price12m = valid.length ? valid[0] : null;
+      const price12m    = valid.length ? valid[0] : null;
+      const sma50       = smaLast(closes, 50);
+      const sma150      = smaLast(closes, 150);
+      const sma200      = smaLast(closes, 200);
+      const sma200ago22 = smaAgo(closes, 200, 22);
+      const high52w     = valid.length ? Math.max(...valid) : null;
+      const low52w      = valid.length ? Math.min(...valid) : null;
 
-  // Moving averages
-  const sma50      = smaLast(closes, 50);
-  const sma150     = smaLast(closes, 150);
-  const sma200     = smaLast(closes, 200);
-  const sma200ago22 = smaAgo(closes, 200, 22);
+      let adrSum = 0, adrN = 0;
+      for (let i = Math.max(0, closes.length - 20); i < closes.length; i++) {
+        if (highs[i] != null && lows[i] != null && closes[i]) { adrSum += (highs[i] - lows[i]) / closes[i] * 100; adrN++; }
+      }
 
-  // 52-week high/low
-  const high52w = valid.length ? Math.max(...valid) : null;
-  const low52w  = valid.length ? Math.min(...valid) : null;
+      const cur     = meta.regularMarketPrice ?? null;
+      const gain    = (cur != null && price6m  != null && price6m  !== 0) ? (cur - price6m)  / price6m  * 100 : null;
+      const gain12m = (cur != null && price12m != null && price12m !== 0) ? (cur - price12m) / price12m * 100 : null;
 
-  // ADR: avg daily range % over last 20 days
-  let adrSum = 0, adrN = 0;
-  for (let i = Math.max(0, closes.length - 20); i < closes.length; i++) {
-    if (highs[i] != null && lows[i] != null && closes[i]) { adrSum += (highs[i] - lows[i]) / closes[i] * 100; adrN++; }
+      return {
+        name:         meta.longName || meta.shortName || symbol,
+        currentPrice: cur,
+        price6m, gain, gain12m,
+        sma50, sma150, sma200, sma200ago22,
+        high52w, low52w,
+        marketCap:    meta.marketCap ?? null,
+        avgVolume:    meta.averageVolume || meta.regularMarketVolume || null,
+        adr:          adrN ? adrSum / adrN : null,
+        fetchStatus:  'ok', fetchError: null, lastFetched: Date.now(),
+      };
+    } catch (e) {
+      lastErr = e;
+    }
   }
-
-  const cur    = meta.regularMarketPrice ?? null;
-  const gain   = (cur != null && price6m != null && price6m !== 0) ? (cur - price6m) / price6m * 100 : null;
-  const gain12m = (cur != null && price12m != null && price12m !== 0) ? (cur - price12m) / price12m * 100 : null;
-
-  return {
-    name:         meta.longName || meta.shortName || symbol,
-    currentPrice: cur,
-    price6m, gain, gain12m,
-    sma50, sma150, sma200, sma200ago22,
-    high52w, low52w,
-    marketCap:    meta.marketCap ?? null,
-    avgVolume:    meta.averageVolume || meta.regularMarketVolume || null,
-    adr:          adrN ? adrSum / adrN : null,
-    fetchStatus:  'ok', fetchError: null, lastFetched: Date.now(),
-  };
+  throw lastErr;
 }
 
 async function fetchOne(symbol, sessionId) {
@@ -925,98 +940,148 @@ document.getElementById('ns-name').addEventListener('keydown', e => {
 
 ['f-adr','f-mcap','f-gain','f-sector','f-tt'].forEach(id => document.getElementById(id).addEventListener('input', renderTable));
 
-// ─── FMP ──────────────────────────────────────────────────────────────────────
-function openFMPModal() {
-  document.getElementById('fmp-modal-bg').classList.add('open');
-  document.getElementById('fmp-key-input').value = localStorage.getItem('fmp-api-key') || '';
-  document.getElementById('fmp-result').style.display = 'none';
+// ─── Universe Builder (EDGAR + YF batch) ──────────────────────────────────────
+let univCancel = false;
+
+function openUnivModal() {
+  document.getElementById('univ-modal-bg').classList.add('open');
+  document.getElementById('univ-result').style.display    = 'none';
+  document.getElementById('univ-progress').style.display  = 'none';
+  document.getElementById('univ-cancel-btn').style.display = 'none';
+  document.getElementById('univ-build-btn').disabled = false;
+  document.getElementById('univ-build-btn').textContent = 'Build Universe';
 }
-function closeFMPModal() {
-  document.getElementById('fmp-modal-bg').classList.remove('open');
+function closeUnivModal() { document.getElementById('univ-modal-bg').classList.remove('open'); }
+
+function univStatus(msg, pct) {
+  document.getElementById('univ-progress').style.display = 'block';
+  document.getElementById('univ-progress-text').textContent = msg;
+  document.getElementById('univ-progress-fill').style.width = pct + '%';
 }
-
-async function loadFMP() {
-  const key  = document.getElementById('fmp-key-input').value.trim();
-  const mcap = document.getElementById('fmp-mcap').value;
-  const exch = document.getElementById('fmp-exchange').value;
-  if (!key) { showFMPResult('warn', 'Please enter your FMP API key.'); return; }
-  localStorage.setItem('fmp-api-key', key);
-
-  const btn = document.getElementById('fmp-load-btn');
-  btn.disabled = true; btn.textContent = 'Loading…';
-  showFMPResult('ok', 'Fetching stock universe from FMP…');
-
-  try {
-    const url = `${FMP_BASE}?marketCapMoreThan=${mcap}&exchange=${encodeURIComponent(exch)}&limit=10000&apikey=${encodeURIComponent(key)}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    if (!Array.isArray(data)) throw new Error(data['Error Message'] || data.error || 'Invalid response — check your API key.');
-    if (!data.length) throw new Error('No stocks returned. Check your API key and filters.');
-
-    const result = importFMP(data);
-    showFMPResult('ok', `✓ ${result.added} stocks loaded, ${result.skipped} already in session. Fetching 1Y price data in background…`);
-    setTimeout(closeFMPModal, 3000);
-  } catch (e) {
-    showFMPResult('warn', '✗ ' + e.message);
-  } finally {
-    btn.disabled = false; btn.textContent = 'Load Universe';
-  }
-}
-
-function importFMP(data) {
-  const sess = active();
-  let added = 0, skipped = 0;
-  const toFetch = [];
-
-  for (const item of data) {
-    const sym = (item.symbol || '').toUpperCase().trim();
-    if (!sym || !/^[A-Z.\-]{1,12}$/.test(sym)) { skipped++; continue; }
-    if (item.isEtf || item.isFund || item.isActivelyTrading === false) { skipped++; continue; }
-
-    if (sess.stocks[sym]) {
-      if (item.sector)      sess.stocks[sym].sector   = item.sector;
-      if (item.industry)    sess.stocks[sym].industry = item.industry;
-      if (item.companyName && item.companyName !== sym) sess.stocks[sym].name = item.companyName;
-      if (!sess.stocks[sym].lastFetched) {
-        if (item.price)     sess.stocks[sym].currentPrice = item.price;
-        if (item.marketCap) sess.stocks[sym].marketCap    = item.marketCap;
-        if (item.volume)    sess.stocks[sym].avgVolume    = item.volume;
-      }
-      skipped++;
-    } else {
-      sess.stocks[sym] = {
-        ...blankStock(sym),
-        name:         item.companyName || sym,
-        sector:       item.sector      || '',
-        industry:     item.industry    || '',
-        currentPrice: item.price       || null,
-        marketCap:    item.marketCap   || null,
-        avgVolume:    item.volume      || null,
-      };
-      toFetch.push(sym);
-      added++;
-    }
-  }
-
-  persist();
-  renderAll();
-  if (toFetch.length) enqueue(toFetch, state.activeId);
-  return { added, skipped };
-}
-
-function showFMPResult(cls, msg) {
-  const el = document.getElementById('fmp-result');
+function univResult(cls, msg) {
+  const el = document.getElementById('univ-result');
   el.className = 'import-result ' + cls;
   el.textContent = msg;
   el.style.display = 'block';
 }
 
-document.getElementById('btn-fmp').addEventListener('click', openFMPModal);
-document.getElementById('fmp-modal-close').addEventListener('click', closeFMPModal);
-document.getElementById('fmp-load-btn').addEventListener('click', loadFMP);
-document.getElementById('fmp-modal-bg').addEventListener('click', e => { if (e.target.id === 'fmp-modal-bg') closeFMPModal(); });
-document.getElementById('fmp-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') loadFMP(); });
+async function buildUniverse() {
+  const minMcap    = parseInt(document.getElementById('univ-mcap').value);
+  const exchFilter = new Set(document.getElementById('univ-exchange').value.split(','));
+
+  const buildBtn  = document.getElementById('univ-build-btn');
+  const cancelBtn = document.getElementById('univ-cancel-btn');
+  buildBtn.disabled = true; buildBtn.textContent = 'Building…';
+  cancelBtn.style.display = 'inline-block';
+  univCancel = false;
+
+  try {
+    // 1. Fetch EDGAR ticker list
+    univStatus('Fetching ticker list from SEC EDGAR…', 2);
+    let edgarData;
+    try {
+      const r = await fetch(EDGAR_URL, { cache: 'no-store' });
+      edgarData = await r.json();
+    } catch {
+      const r = await proxyFetch(EDGAR_URL);
+      edgarData = await r.json();
+    }
+
+    // EDGAR format: { "0": { cik_str, ticker, name, exchange }, ... }
+    // Exchange values: "Nasdaq", "NYSE", "NYSE Arca", "NYSE MKT", "OTC", ...
+    const EXCH_MAP = { nasdaq: ['nasdaq'], nyse: ['nyse', 'nyse arca', 'nyse mkt', 'nyse american'] };
+    const allowed = new Set([...exchFilter].flatMap(k => EXCH_MAP[k] || [k]));
+
+    const allTickers = Object.values(edgarData)
+      .filter(t => t.ticker && t.exchange && allowed.has(t.exchange.toLowerCase()))
+      .map(t => ({ symbol: t.ticker.toUpperCase().trim(), name: t.name || '' }))
+      .filter(t => /^[A-Z.\-]{1,12}$/.test(t.symbol));
+
+    if (!allTickers.length) throw new Error('No tickers found from EDGAR.');
+    univStatus(`Got ${allTickers.length} tickers. Checking market cap in batches…`, 5);
+
+    // 2. Batch-query YF quote for market cap
+    const BATCH = 100;
+    const passed = [];
+    let checked = 0;
+
+    for (let i = 0; i < allTickers.length && !univCancel; i += BATCH) {
+      const batch   = allTickers.slice(i, i + BATCH);
+      const symbols = batch.map(t => t.symbol).join(',');
+
+      try {
+        const yfUrl = `${YF_QUOTE}?symbols=${encodeURIComponent(symbols)}&fields=marketCap,regularMarketPrice,shortName,longName`;
+        // try both proxies
+        let json;
+        for (let p = 0; p < PROXIES.length; p++) {
+          try {
+            const r = await fetch(PROXIES[p] + encodeURIComponent(yfUrl), { cache: 'no-store' });
+            if (r.ok) { json = await r.json(); break; }
+          } catch {}
+        }
+        const quotes = json?.quoteResponse?.result || [];
+        for (const q of quotes) {
+          if (q.marketCap && q.marketCap >= minMcap) {
+            passed.push({ symbol: q.symbol, name: q.longName || q.shortName || q.symbol, marketCap: q.marketCap, currentPrice: q.regularMarketPrice || null });
+          }
+        }
+      } catch { /* skip failed batch */ }
+
+      checked += batch.length;
+      const pct = Math.round(checked / allTickers.length * 88) + 5;
+      univStatus(`Checked ${checked.toLocaleString()} / ${allTickers.length.toLocaleString()} · ${passed.length} pass $${(minMcap/1e9).toFixed(1)}B+ filter`, pct);
+      await delay(300);
+    }
+
+    if (univCancel) { univResult('warn', 'Cancelled.'); return; }
+    if (!passed.length) throw new Error('No stocks passed the market cap filter. Yahoo Finance may be rate limiting — try again in a minute.');
+
+    univStatus(`Importing ${passed.length} stocks…`, 95);
+    const result = importUniverse(passed);
+    univResult('ok', `✓ ${result.added} stocks added, ${result.skipped} already in session. Fetching 1Y trend data in background…`);
+    setTimeout(closeUnivModal, 4000);
+
+  } catch (e) {
+    univResult('warn', '✗ ' + e.message);
+  } finally {
+    buildBtn.disabled = false; buildBtn.textContent = 'Build Universe';
+    cancelBtn.style.display = 'none';
+  }
+}
+
+function importUniverse(stocks) {
+  const sess = active();
+  let added = 0, skipped = 0;
+  const toFetch = [];
+
+  for (const item of stocks) {
+    const sym = (item.symbol || '').toUpperCase().trim();
+    if (!sym || !/^[A-Z.\-]{1,12}$/.test(sym)) { skipped++; continue; }
+
+    if (sess.stocks[sym]) {
+      if (!sess.stocks[sym].lastFetched) {
+        if (item.currentPrice) sess.stocks[sym].currentPrice = item.currentPrice;
+        if (item.marketCap)    sess.stocks[sym].marketCap    = item.marketCap;
+        if (item.name && item.name !== sym) sess.stocks[sym].name = item.name;
+      }
+      skipped++;
+    } else {
+      sess.stocks[sym] = { ...blankStock(sym), name: item.name || sym, currentPrice: item.currentPrice || null, marketCap: item.marketCap || null };
+      toFetch.push(sym);
+      added++;
+    }
+  }
+
+  persist(); renderAll();
+  if (toFetch.length) enqueue(toFetch, state.activeId);
+  return { added, skipped };
+}
+
+document.getElementById('btn-fmp').addEventListener('click', openUnivModal);
+document.getElementById('univ-modal-close').addEventListener('click', closeUnivModal);
+document.getElementById('univ-build-btn').addEventListener('click', buildUniverse);
+document.getElementById('univ-cancel-btn').addEventListener('click', () => { univCancel = true; });
+document.getElementById('univ-modal-bg').addEventListener('click', e => { if (e.target.id === 'univ-modal-bg') closeUnivModal(); });
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
