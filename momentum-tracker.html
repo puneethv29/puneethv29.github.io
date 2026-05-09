@@ -186,6 +186,7 @@ tr:hover td{background:var(--bg2)}
   <input class="ticker-input" id="ticker-input" placeholder="Add tickers: NVDA AAPL MSFT …" autocomplete="off"/>
   <button class="btn btn-primary" id="btn-add">Add</button>
   <button class="icon-btn" id="btn-import">↑ Import CSV</button>
+  <button class="icon-btn" id="btn-fmp">⬇ Load Universe (FMP)</button>
   <button class="icon-btn" id="btn-refresh-all">↻ Refresh All</button>
   <div class="filters">
     <div class="filter-item">
@@ -280,10 +281,52 @@ tr:hover td{background:var(--bg2)}
   </div>
 </div>
 
+<!-- FMP Modal -->
+<div class="modal-bg" id="fmp-modal-bg">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hdr">
+      <h2>Load Universe from FMP</h2>
+      <button class="modal-close" id="fmp-modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">
+          API Key
+          <a href="https://financialmodelingprep.com/developer/docs/" target="_blank" style="color:var(--blue);margin-left:6px;font-size:11px">Get free key →</a>
+        </label>
+        <input class="text-input" id="fmp-key-input" placeholder="Paste your FMP API key" style="width:100%"/>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Saved in your browser. Free tier: 250 requests/day.</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <div style="flex:1">
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Min Market Cap</label>
+          <select class="filter-select" id="fmp-mcap" style="width:100%">
+            <option value="300000000">$300M+</option>
+            <option value="1000000000">$1B+</option>
+            <option value="2000000000">$2B+</option>
+            <option value="10000000000">$10B+</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Exchange</label>
+          <select class="filter-select" id="fmp-exchange" style="width:100%">
+            <option value="NYSE,NASDAQ">NYSE + NASDAQ</option>
+            <option value="NASDAQ">NASDAQ only</option>
+            <option value="NYSE">NYSE only</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="fmp-load-btn" style="width:100%;padding:8px">Load Universe</button>
+      <div class="import-result" id="fmp-result"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 const STORE_KEY = 'mtrack-v2';
 const PROXY     = 'https://api.allorigins.win/raw?url=';
 const YF_CHART  = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+const FMP_BASE  = 'https://financialmodelingprep.com/api/v3/stock-screener';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let state = { sessions:{}, activeId:null, sortCol:'gain', sortDir:'desc' };
@@ -881,6 +924,99 @@ document.getElementById('ns-name').addEventListener('keydown', e => {
 });
 
 ['f-adr','f-mcap','f-gain','f-sector','f-tt'].forEach(id => document.getElementById(id).addEventListener('input', renderTable));
+
+// ─── FMP ──────────────────────────────────────────────────────────────────────
+function openFMPModal() {
+  document.getElementById('fmp-modal-bg').classList.add('open');
+  document.getElementById('fmp-key-input').value = localStorage.getItem('fmp-api-key') || '';
+  document.getElementById('fmp-result').style.display = 'none';
+}
+function closeFMPModal() {
+  document.getElementById('fmp-modal-bg').classList.remove('open');
+}
+
+async function loadFMP() {
+  const key  = document.getElementById('fmp-key-input').value.trim();
+  const mcap = document.getElementById('fmp-mcap').value;
+  const exch = document.getElementById('fmp-exchange').value;
+  if (!key) { showFMPResult('warn', 'Please enter your FMP API key.'); return; }
+  localStorage.setItem('fmp-api-key', key);
+
+  const btn = document.getElementById('fmp-load-btn');
+  btn.disabled = true; btn.textContent = 'Loading…';
+  showFMPResult('ok', 'Fetching stock universe from FMP…');
+
+  try {
+    const url = `${FMP_BASE}?marketCapMoreThan=${mcap}&exchange=${encodeURIComponent(exch)}&limit=10000&apikey=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    if (!Array.isArray(data)) throw new Error(data['Error Message'] || data.error || 'Invalid response — check your API key.');
+    if (!data.length) throw new Error('No stocks returned. Check your API key and filters.');
+
+    const result = importFMP(data);
+    showFMPResult('ok', `✓ ${result.added} stocks loaded, ${result.skipped} already in session. Fetching 1Y price data in background…`);
+    setTimeout(closeFMPModal, 3000);
+  } catch (e) {
+    showFMPResult('warn', '✗ ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Load Universe';
+  }
+}
+
+function importFMP(data) {
+  const sess = active();
+  let added = 0, skipped = 0;
+  const toFetch = [];
+
+  for (const item of data) {
+    const sym = (item.symbol || '').toUpperCase().trim();
+    if (!sym || !/^[A-Z.\-]{1,12}$/.test(sym)) { skipped++; continue; }
+    if (item.isEtf || item.isFund || item.isActivelyTrading === false) { skipped++; continue; }
+
+    if (sess.stocks[sym]) {
+      if (item.sector)      sess.stocks[sym].sector   = item.sector;
+      if (item.industry)    sess.stocks[sym].industry = item.industry;
+      if (item.companyName && item.companyName !== sym) sess.stocks[sym].name = item.companyName;
+      if (!sess.stocks[sym].lastFetched) {
+        if (item.price)     sess.stocks[sym].currentPrice = item.price;
+        if (item.marketCap) sess.stocks[sym].marketCap    = item.marketCap;
+        if (item.volume)    sess.stocks[sym].avgVolume    = item.volume;
+      }
+      skipped++;
+    } else {
+      sess.stocks[sym] = {
+        ...blankStock(sym),
+        name:         item.companyName || sym,
+        sector:       item.sector      || '',
+        industry:     item.industry    || '',
+        currentPrice: item.price       || null,
+        marketCap:    item.marketCap   || null,
+        avgVolume:    item.volume      || null,
+      };
+      toFetch.push(sym);
+      added++;
+    }
+  }
+
+  persist();
+  renderAll();
+  if (toFetch.length) enqueue(toFetch, state.activeId);
+  return { added, skipped };
+}
+
+function showFMPResult(cls, msg) {
+  const el = document.getElementById('fmp-result');
+  el.className = 'import-result ' + cls;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+document.getElementById('btn-fmp').addEventListener('click', openFMPModal);
+document.getElementById('fmp-modal-close').addEventListener('click', closeFMPModal);
+document.getElementById('fmp-load-btn').addEventListener('click', loadFMP);
+document.getElementById('fmp-modal-bg').addEventListener('click', e => { if (e.target.id === 'fmp-modal-bg') closeFMPModal(); });
+document.getElementById('fmp-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') loadFMP(); });
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
