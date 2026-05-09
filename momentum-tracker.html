@@ -333,9 +333,9 @@ const PROXIES        = [
 ];
 const PROXY          = PROXIES[0];
 const YF_CHART       = 'https://query1.finance.yahoo.com/v8/finance/chart/';
-const YF_QUOTE       = 'https://query1.finance.yahoo.com/v7/finance/quote';
-const EDGAR_EXCH_URL = 'https://www.sec.gov/files/company_tickers_exchange.json';
-const EDGAR_BASE_URL = 'https://www.sec.gov/files/company_tickers.json';
+const NASDAQ_SCREENER = 'https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10000&offset=0';
+const EDGAR_EXCH_URL  = 'https://www.sec.gov/files/company_tickers_exchange.json';
+const EDGAR_BASE_URL  = 'https://www.sec.gov/files/company_tickers.json';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let state = { sessions:{}, activeId:null, sortCol:'gain', sortDir:'desc' };
@@ -1009,28 +1009,67 @@ function univResult(cls, msg) {
 }
 
 async function buildUniverse() {
-  const minMcap    = parseInt(document.getElementById('univ-mcap').value);
-  const exchFilter = new Set(document.getElementById('univ-exchange').value.split(','));
-  const mcapLabel  = minMcap >= 1e9 ? `$${(minMcap/1e9).toFixed(0)}B` : `$${(minMcap/1e6).toFixed(0)}M`;
+  const minMcap   = parseInt(document.getElementById('univ-mcap').value);
+  const exchVal   = document.getElementById('univ-exchange').value; // 'nasdaq,nyse' | 'nasdaq' | 'nyse'
+  const mcapLabel = minMcap >= 1e9 ? `$${(minMcap/1e9).toFixed(0)}B` : `$${(minMcap/1e6).toFixed(0)}M`;
 
   const buildBtn  = document.getElementById('univ-build-btn');
   const cancelBtn = document.getElementById('univ-cancel-btn');
   buildBtn.disabled = true; buildBtn.textContent = 'Loading…';
-  cancelBtn.style.display = 'inline-block';
-  univCancel = false;
+  cancelBtn.style.display = 'none';
 
   try {
-    // ── Step 1: EDGAR ticker list (direct, no proxy needed) ───────────────────
-    univStatus('Fetching ticker list from SEC EDGAR…', 5);
+    // ── Primary: NASDAQ screener API — one request, returns everything ─────────
+    univStatus('Fetching universe from NASDAQ screener…', 20);
+    let url = NASDAQ_SCREENER;
+    if (exchVal === 'nasdaq') url += '&exchange=nasdaq';
+    else if (exchVal === 'nyse') url += '&exchange=nyse';
+
+    let rows = null;
+    try {
+      const data = await fetchJSONSafe(url);
+      rows = data?.data?.rows;
+    } catch {}
+
+    if (rows?.length) {
+      // ── Got NASDAQ data: import immediately ───────────────────────────────
+      univStatus(`Got ${rows.length} stocks. Filtering by market cap…`, 60);
+      const sess = active();
+      const toFetch = [];
+      let added = 0, skipped = 0;
+
+      for (const row of rows) {
+        const sym = (row.symbol || '').toUpperCase().trim();
+        if (!sym || !/^[A-Z.\-]{1,12}$/.test(sym)) { skipped++; continue; }
+        const mcap  = parseFloat(String(row.marketCap  || '').replace(/[^0-9.]/g, '')) || 0;
+        if (mcap < minMcap) { skipped++; continue; }
+        const price = parseFloat(String(row.lastsale   || '').replace(/[^0-9.]/g, '')) || null;
+        const vol   = parseFloat(String(row.volume     || '').replace(/[^0-9.]/g, '')) || null;
+        if (sess.stocks[sym]) { skipped++; continue; }
+        sess.stocks[sym] = { ...blankStock(sym), name: row.name || sym, sector: row.sector || '', industry: row.industry || '', currentPrice: price, marketCap: mcap, avgVolume: vol };
+        toFetch.push(sym);
+        added++;
+      }
+
+      persist(); renderAll();
+      if (toFetch.length) enqueue(toFetch, state.activeId);
+      univStatus('Done — stocks visible in table now.', 100);
+      univResult('ok', `✓ ${added} stocks loaded with market cap + sector data. 1Y trend data fetching in background…`);
+      setTimeout(closeUnivModal, 4000);
+      return;
+    }
+
+    // ── Fallback: EDGAR ticker list → stubs → prune during 1Y fetch ──────────
+    univStatus('NASDAQ screener unavailable. Falling back to EDGAR ticker list…', 30);
     let edgarData, hasExchange = true;
     try { edgarData = await fetchJSONSafe(EDGAR_EXCH_URL); }
     catch {
-      univStatus('Falling back to basic EDGAR list…', 8);
       try { edgarData = await fetchJSONSafe(EDGAR_BASE_URL); hasExchange = false; }
-      catch (e2) { throw new Error('Could not load ticker list from SEC EDGAR. (' + e2.message + ')'); }
+      catch (e2) { throw new Error('Could not load ticker list from EDGAR. (' + e2.message + ')'); }
     }
 
     const EXCH_MAP = { nasdaq: ['nasdaq'], nyse: ['nyse', 'nyse arca', 'nyse mkt', 'nyse american'] };
+    const exchFilter = new Set(exchVal.split(','));
     const allowed  = new Set([...exchFilter].flatMap(k => EXCH_MAP[k] || [k]));
     let allTickers;
     if (Array.isArray(edgarData.data) && Array.isArray(edgarData.fields)) {
@@ -1044,69 +1083,13 @@ async function buildUniverse() {
         .map(t => ({ symbol: t.ticker.toUpperCase().trim(), name: t.name || '' }));
     }
     allTickers = allTickers.filter(t => /^[A-Z.\-]{1,12}$/.test(t.symbol));
-    if (!allTickers.length) throw new Error('No tickers found. Try "NYSE + NASDAQ" exchange option.');
+    if (!allTickers.length) throw new Error('No tickers found from EDGAR. Try "NYSE + NASDAQ".');
 
-    // ── Step 2: fast batch market cap check (v7/finance/quote, 100 per request) ─
-    // Each proxy is tried per batch; if all proxies return 401/error, that batch
-    // falls back to the slow 1Y queue path so nothing is silently skipped.
-    univStatus(`Got ${allTickers.length} tickers. Running fast market cap scan…`, 10);
-    const BATCH = 100;
-    const slowQueue = []; // tickers whose batch failed → fall back to 1Y fetch
-    let checked = 0, visible = 0, batchesDone = 0;
-
-    for (let i = 0; i < allTickers.length && !univCancel; i += BATCH) {
-      const batch   = allTickers.slice(i, i + BATCH);
-      const symbols = batch.map(t => t.symbol).join(',');
-      const yfUrl   = `${YF_QUOTE}?symbols=${encodeURIComponent(symbols)}&fields=marketCap,regularMarketPrice,shortName,longName`;
-
-      let batchOk = false;
-      for (const proxy of PROXIES) {
-        try {
-          const r = await fetch(proxy + encodeURIComponent(yfUrl), { cache: 'no-store' });
-          if (r.status === 401 || !r.ok) continue;
-          const text = await r.text();
-          if (!text.trimStart().startsWith('{')) continue;
-          const quotes = JSON.parse(text)?.quoteResponse?.result || [];
-          const sess = active();
-          for (const q of quotes) {
-            if (!q.marketCap || q.marketCap < minMcap) continue;
-            const sym = q.symbol;
-            if (!sess.stocks[sym]) {
-              sess.stocks[sym] = { ...blankStock(sym), name: q.longName || q.shortName || sym, currentPrice: q.regularMarketPrice || null, marketCap: q.marketCap };
-              visible++;
-            }
-          }
-          batchOk = true;
-          break;
-        } catch {}
-      }
-
-      if (!batchOk) slowQueue.push(...batch); // all proxies failed → slow path
-      checked += batch.length;
-      batchesDone++;
-      const pct = Math.round(checked / allTickers.length * 75) + 10;
-      univStatus(`Fast scan: ${checked.toLocaleString()} / ${allTickers.length.toLocaleString()} checked · ${visible} pass ${mcapLabel} · ${slowQueue.length} queued for slow scan`, pct);
-      persist(); renderTable();
-      await delay(300);
-    }
-
-    if (univCancel) { univResult('warn', 'Cancelled.'); return; }
-
-    // ── Step 3: queue fast-passed stocks for full 1Y data, plus slow-path stubs ─
-    const sess      = active();
-    const toFetch1Y = Object.keys(sess.stocks).filter(sym => !sess.stocks[sym].lastFetched);
-    // Add slow-path tickers as stubs (will be pruned if below threshold during 1Y fetch)
+    univStatus(`Got ${allTickers.length} tickers. Importing as stubs — stocks appear as 1Y data arrives…`, 70);
     univMinMcap = minMcap;
-    for (const t of slowQueue) {
-      const sym = t.symbol;
-      if (!sess.stocks[sym]) { sess.stocks[sym] = { ...blankStock(sym), name: t.name || sym, univStub: true }; toFetch1Y.push(sym); }
-    }
-    persist(); renderAll();
-    if (toFetch1Y.length) enqueue(toFetch1Y, state.activeId);
-
-    const slowNote = slowQueue.length ? ` ${slowQueue.length} tickers will be market-cap-filtered during 1Y fetch.` : '';
-    univResult('ok', `✓ ${visible} stocks loaded instantly.${slowNote} 1Y trend data fetching in background…`);
-    setTimeout(closeUnivModal, 5000);
+    const result = importUniverse(allTickers);
+    univResult('ok', `✓ ${result.added} tickers queued. Stocks below ${mcapLabel} market cap will be pruned as data arrives.`);
+    setTimeout(closeUnivModal, 4000);
 
   } catch (e) {
     univResult('warn', '✗ ' + e.message);
