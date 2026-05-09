@@ -98,6 +98,13 @@ tr:hover td{background:var(--bg2)}
 .rank-badge.gold  {background:rgba(160,120,0,.10);border-color:rgba(160,120,0,.40);color:var(--gold)}
 .rank-badge.silver{background:rgba(140,140,140,.10);border-color:rgba(140,140,140,.40);color:var(--text2)}
 .rank-badge.bronze{background:rgba(24,95,165,.08);border-color:rgba(24,95,165,.30);color:var(--blue)}
+
+/* Trend Template badge */
+.tt-badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;padding:0 6px;border-radius:5px;font-size:11px;font-weight:600;cursor:default;letter-spacing:.3px}
+.tt-full{background:rgba(29,158,117,.15);color:var(--green);border:.5px solid rgba(29,158,117,.4)}
+.tt-high{background:rgba(29,158,117,.07);color:var(--green);border:.5px solid rgba(29,158,117,.2)}
+.tt-mid {background:rgba(160,120,0,.08);color:var(--gold);border:.5px solid rgba(160,120,0,.3)}
+.tt-low {background:transparent;color:var(--text3);border:.5px solid var(--border2)}
 .rank-input{width:42px;font-size:12px;font-weight:600;text-align:center;padding:3px 4px;border-radius:6px;border:.5px solid var(--blue);background:var(--bg);color:var(--text);outline:none;font-family:inherit}
 
 /* Gain */
@@ -195,6 +202,15 @@ tr:hover td{background:var(--bg2)}
       <label class="filter-label">Sector</label>
       <select class="filter-select" id="f-sector"><option value="">All</option></select>
     </div>
+    <div class="filter-item">
+      <label class="filter-label" title="Minervini Trend Template: 8 criteria based on moving averages, 52-week range, and relative strength">TT Score</label>
+      <select class="filter-select" id="f-tt">
+        <option value="">All</option>
+        <option value="6">≥ 6/8</option>
+        <option value="7">≥ 7/8</option>
+        <option value="8">8/8</option>
+      </select>
+    </div>
   </div>
 </div>
 
@@ -216,6 +232,7 @@ tr:hover td{background:var(--bg2)}
       <th data-col="marketCap">Mkt Cap</th>
       <th data-col="avgVolume">Avg Vol</th>
       <th data-col="adr">ADR%</th>
+      <th data-col="tt">TT</th>
       <th class="nosort" style="min-width:100px"></th>
       <th class="nosort"></th>
     </tr></thead>
@@ -334,13 +351,64 @@ function updateProgress() {
   const pct  = qTotal ? Math.round(done / qTotal * 100) : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
   document.getElementById('progress-text').textContent =
-    `Fetching 6M prices: ${done} / ${qTotal}` +
+    `Fetching trend data: ${done} / ${qTotal}` +
     (queue.length ? ` · ~${Math.round(queue.length * 0.25 / 60)} min remaining` : ' · done');
+}
+
+// ─── Trend Template helpers ───────────────────────────────────────────────────
+const TT_LABELS = [
+  'Price > SMA150 & SMA200',
+  'SMA150 > SMA200',
+  'SMA200 trending up (1+ month)',
+  'SMA50 > SMA150 & SMA200',
+  'Price > SMA50',
+  '30%+ above 52-week low',
+  'Within 25% of 52-week high',
+  'RS Rank ≥ 70 (within universe)',
+];
+
+function smaLast(arr, n) {
+  const v = arr.filter(x => x != null);
+  if (v.length < n) return null;
+  const sl = v.slice(-n);
+  return sl.reduce((a, b) => a + b, 0) / n;
+}
+
+function smaAgo(arr, n, offset) {
+  const v = arr.filter(x => x != null);
+  if (v.length < n + offset) return null;
+  const sl = v.slice(-(n + offset), v.length - offset);
+  return sl.reduce((a, b) => a + b, 0) / n;
+}
+
+function evalTT(s) {
+  const p = s.currentPrice;
+  const checks = [
+    p != null && s.sma150 != null && s.sma200 != null && p > s.sma150 && p > s.sma200,
+    s.sma150 != null && s.sma200 != null && s.sma150 > s.sma200,
+    s.sma200 != null && s.sma200ago22 != null && s.sma200 > s.sma200ago22,
+    s.sma50 != null && s.sma150 != null && s.sma200 != null && s.sma50 > s.sma150 && s.sma50 > s.sma200,
+    p != null && s.sma50 != null && p > s.sma50,
+    p != null && s.low52w != null && p >= s.low52w * 1.30,
+    p != null && s.high52w != null && p <= s.high52w * 1.25,
+    s.rsRank != null && s.rsRank >= 70,
+  ];
+  return { checks, score: checks.filter(Boolean).length };
+}
+
+function computeRSRanks(sessId) {
+  const sess = state.sessions[sessId];
+  if (!sess) return;
+  const stocks = Object.values(sess.stocks).filter(s => s.gain12m != null);
+  if (!stocks.length) return;
+  stocks.sort((a, b) => a.gain12m - b.gain12m);
+  stocks.forEach((s, i) => { s.rsRank = Math.round((i + 1) / stocks.length * 100); });
+  Object.values(sess.stocks).forEach(s => { if (s.gain12m == null) s.rsRank = null; });
 }
 
 // ─── Yahoo Finance ────────────────────────────────────────────────────────────
 async function fetchYF(symbol) {
-  const yf  = YF_CHART + encodeURIComponent(symbol) + '?range=6mo&interval=1d';
+  const yf  = YF_CHART + encodeURIComponent(symbol) + '?range=1y&interval=1d';
   const url  = PROXY + encodeURIComponent(yf);
   const r    = await fetch(url, { cache:'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -354,21 +422,42 @@ async function fetchYF(symbol) {
   const highs  = res.indicators?.quote?.[0]?.high || [];
   const lows   = res.indicators?.quote?.[0]?.low  || [];
 
+  // 6M price: close from ~126 trading days ago (half of 252)
+  const valid = closes.filter(c => c != null);
   let price6m = null;
-  for (let i = 0; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
+  const halfIdx = Math.max(0, closes.length - 126);
+  for (let i = halfIdx; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
+  if (!price6m) for (let i = 0; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
 
+  // 12M price: first valid close
+  const price12m = valid.length ? valid[0] : null;
+
+  // Moving averages
+  const sma50      = smaLast(closes, 50);
+  const sma150     = smaLast(closes, 150);
+  const sma200     = smaLast(closes, 200);
+  const sma200ago22 = smaAgo(closes, 200, 22);
+
+  // 52-week high/low
+  const high52w = valid.length ? Math.max(...valid) : null;
+  const low52w  = valid.length ? Math.min(...valid) : null;
+
+  // ADR: avg daily range % over last 20 days
   let adrSum = 0, adrN = 0;
   for (let i = Math.max(0, closes.length - 20); i < closes.length; i++) {
     if (highs[i] != null && lows[i] != null && closes[i]) { adrSum += (highs[i] - lows[i]) / closes[i] * 100; adrN++; }
   }
 
-  const cur  = meta.regularMarketPrice ?? null;
-  const gain = (cur != null && price6m != null && price6m !== 0) ? (cur - price6m) / price6m * 100 : null;
+  const cur    = meta.regularMarketPrice ?? null;
+  const gain   = (cur != null && price6m != null && price6m !== 0) ? (cur - price6m) / price6m * 100 : null;
+  const gain12m = (cur != null && price12m != null && price12m !== 0) ? (cur - price12m) / price12m * 100 : null;
 
   return {
     name:         meta.longName || meta.shortName || symbol,
     currentPrice: cur,
-    price6m, gain,
+    price6m, gain, gain12m,
+    sma50, sma150, sma200, sma200ago22,
+    high52w, low52w,
     marketCap:    meta.marketCap ?? null,
     avgVolume:    meta.averageVolume || meta.regularMarketVolume || null,
     adr:          adrN ? adrSum / adrN : null,
@@ -387,6 +476,7 @@ async function fetchOne(symbol, sessionId) {
     // preserve sector/industry if not returned by YF
     const existing = sess.stocks[symbol];
     Object.assign(existing, data);
+    computeRSRanks(sessionId);
   } catch (e) {
     sess.stocks[symbol].fetchStatus = 'error';
     sess.stocks[symbol].fetchError  = e.message;
@@ -414,7 +504,7 @@ async function addTickers() {
 }
 
 function blankStock(sym) {
-  return { symbol:sym, name:sym, currentPrice:null, price6m:null, gain:null, marketCap:null, avgVolume:null, adr:null, sector:'', industry:'', buyRank:null, fetchStatus:'pending', fetchError:null, lastFetched:null };
+  return { symbol:sym, name:sym, currentPrice:null, price6m:null, gain:null, gain12m:null, sma50:null, sma150:null, sma200:null, sma200ago22:null, high52w:null, low52w:null, rsRank:null, marketCap:null, avgVolume:null, adr:null, sector:'', industry:'', buyRank:null, fetchStatus:'pending', fetchError:null, lastFetched:null };
 }
 
 // ─── Refresh all ──────────────────────────────────────────────────────────────
@@ -537,19 +627,21 @@ function filteredSorted() {
   const gainStr   = document.getElementById('f-gain').value.trim();
   const minGain   = gainStr !== '' ? parseFloat(gainStr) : null;
   const secFilter = document.getElementById('f-sector').value;
+  const minTT     = parseInt(document.getElementById('f-tt').value) || 0;
 
   let rows = Object.values(active().stocks).filter(s => {
     if (minAdr  > 0  && (s.adr == null || s.adr < minAdr)) return false;
     if (minMcap > 0  && (s.marketCap == null || s.marketCap / 1e9 < minMcap)) return false;
     if (minGain != null && (s.gain == null || s.gain < minGain)) return false;
     if (secFilter && s.sector !== secFilter) return false;
+    if (minTT > 0 && (!s.lastFetched || evalTT(s).score < minTT)) return false;
     return true;
   });
 
   const col = state.sortCol, dir = state.sortDir === 'desc' ? -1 : 1;
   rows.sort((a, b) => {
-    let av = col === 'rank' ? (a.buyRank ?? 9999) : a[col];
-    let bv = col === 'rank' ? (b.buyRank ?? 9999) : b[col];
+    let av = col === 'rank' ? (a.buyRank ?? 9999) : col === 'tt' ? (a.lastFetched ? evalTT(a).score : -1) : a[col];
+    let bv = col === 'rank' ? (b.buyRank ?? 9999) : col === 'tt' ? (b.lastFetched ? evalTT(b).score : -1) : b[col];
     // nulls always to bottom regardless of direction
     if (av == null && bv == null) return 0;
     if (av == null) return 1;
@@ -575,6 +667,18 @@ function gainBar(gain, maxGain) {
   const pct = Math.min(Math.abs(gain)/Math.max(maxGain,1)*100,100).toFixed(1);
   const col = gain >= 0 ? 'var(--green)' : 'var(--red)';
   return `<div class="gain-bar-track"><div class="gain-bar-fill" style="width:${pct}%;background:${col}"></div></div>`;
+}
+
+// ─── TT badge ─────────────────────────────────────────────────────────────────
+function ttBadge(s) {
+  const { checks, score } = evalTT(s);
+  const cls = score === 8 ? 'tt-full' : score >= 7 ? 'tt-high' : score >= 5 ? 'tt-mid' : 'tt-low';
+  const tooltip = TT_LABELS.map((lbl, i) => {
+    let line = (checks[i] ? '✓' : '✗') + ' ' + lbl;
+    if (i === 7) line += s.rsRank != null ? ` (rank: ${s.rsRank})` : ' (rank: N/A)';
+    return line;
+  }).join('\n');
+  return `<span class="tt-badge ${cls}" title="${esc(tooltip)}">${score}/8</span>`;
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
@@ -636,6 +740,7 @@ function renderTable() {
       <td>${fmtMcap(s.marketCap)}</td>
       <td>${fmtVol(s.avgVolume)}</td>
       <td>${fmtAdr(s.adr)}</td>
+      <td>${s.lastFetched ? ttBadge(s) : ''}</td>
       <td style="white-space:nowrap">${statusHTML} <button class="row-refresh" data-refresh="${esc(s.symbol)}">↻</button></td>
       <td><button class="remove-btn" data-remove="${esc(s.symbol)}">×</button></td>
     </tr>`;
@@ -773,7 +878,7 @@ document.getElementById('ns-name').addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('ns-cancel').click();
 });
 
-['f-adr','f-mcap','f-gain','f-sector'].forEach(id => document.getElementById(id).addEventListener('input', renderTable));
+['f-adr','f-mcap','f-gain','f-sector','f-tt'].forEach(id => document.getElementById(id).addEventListener('input', renderTable));
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
