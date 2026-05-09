@@ -1010,18 +1010,35 @@ async function buildUniverse() {
       }
     }
 
-    // Build ticker list
+    // Build ticker list — handle two EDGAR formats:
+    // company_tickers_exchange.json → { fields: [...], data: [[cik,name,ticker,exchange], ...] }
+    // company_tickers.json          → { "0": { cik_str, ticker, name }, ... }
     const EXCH_MAP = { nasdaq: ['nasdaq'], nyse: ['nyse', 'nyse arca', 'nyse mkt', 'nyse american'] };
     const allowed  = new Set([...exchFilter].flatMap(k => EXCH_MAP[k] || [k]));
 
-    const allTickers = Object.values(edgarData)
-      .filter(t => {
-        if (!t.ticker) return false;
-        if (hasExchange && t.exchange) return allowed.has(t.exchange.toLowerCase());
-        return true; // no exchange field: include all, let YF filter
-      })
-      .map(t => ({ symbol: t.ticker.toUpperCase().trim(), name: t.name || '' }))
-      .filter(t => /^[A-Z.\-]{1,12}$/.test(t.symbol));
+    let allTickers;
+    if (Array.isArray(edgarData.data) && Array.isArray(edgarData.fields)) {
+      // array-of-arrays format
+      const fi = { ticker: edgarData.fields.indexOf('ticker'), name: edgarData.fields.indexOf('name'), exchange: edgarData.fields.indexOf('exchange') };
+      allTickers = edgarData.data
+        .filter(row => {
+          const sym = row[fi.ticker];
+          if (!sym) return false;
+          if (hasExchange && fi.exchange >= 0 && row[fi.exchange]) return allowed.has(row[fi.exchange].toLowerCase());
+          return true;
+        })
+        .map(row => ({ symbol: String(row[fi.ticker]).toUpperCase().trim(), name: String(row[fi.name] || '') }));
+    } else {
+      // object-of-objects format
+      allTickers = Object.values(edgarData)
+        .filter(t => {
+          if (!t.ticker) return false;
+          if (hasExchange && t.exchange) return allowed.has(t.exchange.toLowerCase());
+          return true;
+        })
+        .map(t => ({ symbol: t.ticker.toUpperCase().trim(), name: t.name || '' }));
+    }
+    allTickers = allTickers.filter(t => /^[A-Z.\-]{1,12}$/.test(t.symbol));
 
     if (!allTickers.length) throw new Error('No tickers found from EDGAR.');
     univStatus(`Got ${allTickers.length} tickers. Checking market cap via Yahoo Finance…`, 5);
