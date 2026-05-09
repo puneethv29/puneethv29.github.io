@@ -326,11 +326,12 @@ tr:hover td{background:var(--bg2)}
 
 <script>
 const STORE_KEY = 'mtrack-v2';
-const PROXIES   = ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?url='];
-const PROXY     = PROXIES[0];
-const YF_CHART  = 'https://query1.finance.yahoo.com/v8/finance/chart/';
-const YF_QUOTE  = 'https://query1.finance.yahoo.com/v7/finance/quote';
-const EDGAR_URL = 'https://www.sec.gov/files/company_tickers_exchange.json';
+const PROXIES        = ['https://api.allorigins.win/raw?url='];
+const PROXY          = PROXIES[0];
+const YF_CHART       = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+const YF_QUOTE       = 'https://query1.finance.yahoo.com/v7/finance/quote';
+const EDGAR_EXCH_URL = 'https://www.sec.gov/files/company_tickers_exchange.json';
+const EDGAR_BASE_URL = 'https://www.sec.gov/files/company_tickers.json';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let state = { sessions:{}, activeId:null, sortCol:'gain', sortDir:'desc' };
@@ -455,12 +456,27 @@ function computeRSRanks(sessId) {
   Object.values(sess.stocks).forEach(s => { if (s.gain12m == null) s.rsRank = null; });
 }
 
-// ─── Proxy fetch with fallback ────────────────────────────────────────────────
-async function proxyFetch(targetUrl, attempt = 0) {
-  const proxy = PROXIES[attempt % PROXIES.length];
-  const r = await fetch(proxy + encodeURIComponent(targetUrl), { cache: 'no-store' });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r;
+// ─── Safe JSON fetch: direct → each proxy, validates it's actually JSON ───────
+async function fetchJSONSafe(url) {
+  const attempts = [
+    () => fetch(url, { cache: 'no-store' }),
+    ...PROXIES.map(p => () => fetch(p + encodeURIComponent(url), { cache: 'no-store' })),
+  ];
+  let lastErr = new Error('All fetch attempts failed for ' + url);
+  for (const attempt of attempts) {
+    try {
+      const r = await attempt();
+      if (!r.ok) { lastErr = new Error('HTTP ' + r.status); continue; }
+      const text = await r.text();
+      const t = text.trimStart();
+      if (t[0] !== '{' && t[0] !== '[') {
+        lastErr = new Error('Server returned HTML instead of JSON — the proxy may be down or rate-limited. Try again in a moment.');
+        continue;
+      }
+      return JSON.parse(text);
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
 }
 
 // ─── Yahoo Finance ────────────────────────────────────────────────────────────
@@ -472,9 +488,8 @@ async function fetchYF(symbol) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       if (attempt > 0) await delay(1200 * attempt);
-      const yf = hosts[attempt % 2] + path;
-      const r  = await proxyFetch(yf, attempt);
-      const json = await r.json();
+      const yf   = hosts[attempt % 2] + path;
+      const json = await fetchJSONSafe(yf);
       if (json.chart?.error) throw new Error(json.chart.error.description || 'API error');
       const res = json.chart?.result?.[0];
       if (!res) throw new Error('No data');
@@ -976,34 +991,37 @@ async function buildUniverse() {
   univCancel = false;
 
   try {
-    // 1. Fetch EDGAR ticker list
+    // 1. Fetch EDGAR ticker list (with-exchange version preferred, falls back to basic)
     univStatus('Fetching ticker list from SEC EDGAR…', 2);
-    let edgarData;
+    let edgarData, hasExchange = true;
     try {
-      const r = await fetch(EDGAR_URL, { cache: 'no-store' });
-      edgarData = await r.json();
+      edgarData = await fetchJSONSafe(EDGAR_EXCH_URL);
     } catch {
-      const r = await proxyFetch(EDGAR_URL);
-      edgarData = await r.json();
+      univStatus('Exchange list unavailable — falling back to full ticker list…', 3);
+      edgarData = await fetchJSONSafe(EDGAR_BASE_URL);
+      hasExchange = false;
     }
 
-    // EDGAR format: { "0": { cik_str, ticker, name, exchange }, ... }
-    // Exchange values: "Nasdaq", "NYSE", "NYSE Arca", "NYSE MKT", "OTC", ...
+    // Build ticker list
     const EXCH_MAP = { nasdaq: ['nasdaq'], nyse: ['nyse', 'nyse arca', 'nyse mkt', 'nyse american'] };
-    const allowed = new Set([...exchFilter].flatMap(k => EXCH_MAP[k] || [k]));
+    const allowed  = new Set([...exchFilter].flatMap(k => EXCH_MAP[k] || [k]));
 
     const allTickers = Object.values(edgarData)
-      .filter(t => t.ticker && t.exchange && allowed.has(t.exchange.toLowerCase()))
+      .filter(t => {
+        if (!t.ticker) return false;
+        if (hasExchange && t.exchange) return allowed.has(t.exchange.toLowerCase());
+        return true; // no exchange field: include all, let YF filter
+      })
       .map(t => ({ symbol: t.ticker.toUpperCase().trim(), name: t.name || '' }))
       .filter(t => /^[A-Z.\-]{1,12}$/.test(t.symbol));
 
     if (!allTickers.length) throw new Error('No tickers found from EDGAR.');
-    univStatus(`Got ${allTickers.length} tickers. Checking market cap in batches…`, 5);
+    univStatus(`Got ${allTickers.length} tickers. Checking market cap via Yahoo Finance…`, 5);
 
-    // 2. Batch-query YF quote for market cap
+    // 2. Batch-query YF quote for market cap (100 symbols per request)
     const BATCH = 100;
     const passed = [];
-    let checked = 0;
+    let checked = 0, batchErrors = 0;
 
     for (let i = 0; i < allTickers.length && !univCancel; i += BATCH) {
       const batch   = allTickers.slice(i, i + BATCH);
@@ -1011,26 +1029,24 @@ async function buildUniverse() {
 
       try {
         const yfUrl = `${YF_QUOTE}?symbols=${encodeURIComponent(symbols)}&fields=marketCap,regularMarketPrice,shortName,longName`;
-        // try both proxies
-        let json;
-        for (let p = 0; p < PROXIES.length; p++) {
-          try {
-            const r = await fetch(PROXIES[p] + encodeURIComponent(yfUrl), { cache: 'no-store' });
-            if (r.ok) { json = await r.json(); break; }
-          } catch {}
-        }
+        const json  = await fetchJSONSafe(yfUrl);
         const quotes = json?.quoteResponse?.result || [];
         for (const q of quotes) {
           if (q.marketCap && q.marketCap >= minMcap) {
             passed.push({ symbol: q.symbol, name: q.longName || q.shortName || q.symbol, marketCap: q.marketCap, currentPrice: q.regularMarketPrice || null });
           }
         }
-      } catch { /* skip failed batch */ }
+        batchErrors = 0;
+      } catch {
+        batchErrors++;
+        if (batchErrors >= 5) throw new Error('Yahoo Finance is refusing requests. Wait a minute and try again.');
+        await delay(2000); // back off on consecutive errors
+      }
 
       checked += batch.length;
       const pct = Math.round(checked / allTickers.length * 88) + 5;
       univStatus(`Checked ${checked.toLocaleString()} / ${allTickers.length.toLocaleString()} · ${passed.length} pass $${(minMcap/1e9).toFixed(1)}B+ filter`, pct);
-      await delay(300);
+      await delay(350);
     }
 
     if (univCancel) { univResult('warn', 'Cancelled.'); return; }
