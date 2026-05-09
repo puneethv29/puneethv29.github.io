@@ -223,16 +223,16 @@ tr:hover td{background:var(--bg2)}
 <div class="table-wrap">
   <table>
     <thead><tr>
-      <th data-col="rank">Rank</th>
-      <th data-col="symbol">Symbol</th>
-      <th class="nosort">Name / Sector</th>
-      <th data-col="currentPrice">Price</th>
-      <th data-col="price6m">6M Price</th>
-      <th data-col="gain" class="desc">6M Gain</th>
-      <th data-col="marketCap">Mkt Cap</th>
-      <th data-col="avgVolume">Avg Vol</th>
-      <th data-col="adr">ADR%</th>
-      <th data-col="tt">TT</th>
+      <th data-col="rank" title="Your personal buy priority rank (1–20). Click a rank badge to edit. Top 5 = gold, 6–10 = silver, 11–20 = blue.">Rank</th>
+      <th data-col="symbol" title="Ticker symbol">Symbol</th>
+      <th class="nosort" title="Company name, sector, and industry from the NASDAQ screener CSV">Name / Sector</th>
+      <th data-col="currentPrice" title="Latest price from Yahoo Finance (~15 min delay during market hours)">Price</th>
+      <th data-col="price6m" title="Price approximately 6 months ago (first close in the 1-year dataset fetched from Yahoo Finance)">6M Price</th>
+      <th data-col="gain" class="desc" title="Percentage gain from 6 months ago to today. This is the core momentum signal — stocks are sorted by this by default.">6M Gain</th>
+      <th data-col="marketCap" title="Market capitalisation. Used to prioritise the fetch queue — large-caps get their data first.">Mkt Cap</th>
+      <th data-col="avgVolume" title="Average daily trading volume reported by Yahoo Finance. Higher volume = more liquidity.">Avg Vol</th>
+      <th data-col="adr" title="Average Daily Range: average of (High − Low) / Close over the last 20 trading days, as a percentage. Measures typical intraday volatility. ~3–6% is a sweet spot for momentum trades — too low means sluggish, too high means erratic.">ADR%</th>
+      <th data-col="tt" title="Minervini Trend Template score (0–8). Hover each badge for a per-criterion breakdown. Green = 8/8 or 7/8, gold = 5–6, grey = below 5. Criterion 8 (RS Rank) is approximated as the percentile of 12-month gain within your loaded universe.">TT</th>
       <th class="nosort" style="min-width:100px"></th>
       <th class="nosort"></th>
     </tr></thead>
