@@ -290,7 +290,7 @@ tr:hover td{background:var(--bg2)}
     </div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
-        Fetches all tickers from <strong style="color:var(--text)">SEC EDGAR</strong>, then checks market cap via <strong style="color:var(--text)">Yahoo Finance</strong> to filter down to your threshold. No API key needed. Takes ~30–60 seconds.
+        Loads universe from <strong style="color:var(--text)">NASDAQ screener</strong> (instant), then fetches weekly trend data from <strong style="color:var(--text)">Yahoo Finance</strong> in the background. At $2B+ market cap, expect ~500 stocks and ~5 min to finish. Results appear live.
       </div>
       <div style="display:flex;gap:10px;margin-bottom:16px">
         <div style="flex:1">
@@ -298,7 +298,7 @@ tr:hover td{background:var(--bg2)}
           <select class="filter-select" id="univ-mcap" style="width:100%">
             <option value="300000000">$300M+</option>
             <option value="1000000000">$1B+</option>
-            <option value="2000000000">$2B+</option>
+            <option value="2000000000" selected>$2B+</option>
             <option value="10000000000">$10B+</option>
           </select>
         </div>
@@ -331,8 +331,9 @@ const PROXIES        = [
   'https://api.allorigins.win/raw?url=',
   'https://api.codetabs.com/v1/proxy?quest=',
 ];
-const PROXY          = PROXIES[0];
-const YF_CHART       = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+const PROXY            = PROXIES[0];
+const QUEUE_CONCURRENCY = 8;
+const YF_CHART         = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 const NASDAQ_SCREENER = 'https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=10000&offset=0';
 const EDGAR_EXCH_URL  = 'https://www.sec.gov/files/company_tickers_exchange.json';
 const EDGAR_BASE_URL  = 'https://www.sec.gov/files/company_tickers.json';
@@ -383,11 +384,14 @@ function enqueue(symbols, sessionId) {
 async function runQueue() {
   qRunning = true; qCancel = false;
   showProgress();
+  let batchNum = 0;
   while (queue.length && !qCancel) {
-    const batch = queue.splice(0, 2); // 2 concurrent fetches
-    await Promise.all(batch.map(item => fetchOne(item.symbol, item.sessionId)));
+    const batch = queue.splice(0, QUEUE_CONCURRENCY);
+    // rotate starting proxy across concurrent slots so no single proxy takes all requests
+    await Promise.all(batch.map((item, i) => fetchOne(item.symbol, item.sessionId, (batchNum * QUEUE_CONCURRENCY + i) % PROXIES.length)));
+    batchNum++;
     updateProgress();
-    await delay(300);
+    await delay(100);
   }
   qRunning  = false;
   qTotal    = 0;
@@ -405,9 +409,12 @@ function updateProgress() {
   const done = qTotal - queue.length;
   const pct  = qTotal ? Math.round(done / qTotal * 100) : 100;
   document.getElementById('progress-fill').style.width = pct + '%';
+  // ~1.5s per stock at QUEUE_CONCURRENCY parallel, +0.1s delay per batch
+  const secsLeft = Math.round(queue.length / QUEUE_CONCURRENCY * 1.6);
+  const timeStr  = secsLeft >= 60 ? `~${Math.ceil(secsLeft/60)}min` : `~${secsLeft}s`;
   document.getElementById('progress-text').textContent =
     `Fetching trend data: ${done} / ${qTotal}` +
-    (queue.length ? ` · ~${Math.round(queue.length * 0.25 / 60)} min remaining` : ' · done');
+    (queue.length ? ` · ${timeStr} remaining` : ' · done');
 }
 
 // ─── Trend Template helpers ───────────────────────────────────────────────────
@@ -462,10 +469,11 @@ function computeRSRanks(sessId) {
 }
 
 // ─── Safe JSON fetch: validates response is actually JSON before parsing ───────
-async function fetchJSONSafe(url, { skipDirect = false } = {}) {
+async function fetchJSONSafe(url, { skipDirect = false, proxyStartIdx = 0 } = {}) {
+  const rotated = [...PROXIES.slice(proxyStartIdx), ...PROXIES.slice(0, proxyStartIdx)];
   const attempts = [
     ...(!skipDirect ? [() => fetch(url, { cache: 'no-store' })] : []),
-    ...PROXIES.map(p => () => fetch(p + encodeURIComponent(url), { cache: 'no-store' })),
+    ...rotated.map(p => () => fetch(p + encodeURIComponent(url), { cache: 'no-store' })),
   ];
   let lastErr = new Error('All fetch attempts failed');
   for (const attempt of attempts) {
@@ -485,41 +493,47 @@ async function fetchJSONSafe(url, { skipDirect = false } = {}) {
 }
 
 // ─── Yahoo Finance ────────────────────────────────────────────────────────────
-async function fetchYF(symbol) {
-  const path = encodeURIComponent(symbol) + '?range=1y&interval=1d';
-  // try query1 then query2 as alternate host, each through rotating proxy
+// Weekly interval: 10W ≈ SMA50, 30W ≈ SMA150, 40W ≈ SMA200 (Minervini uses weekly charts)
+async function fetchYF(symbol, proxyStartIdx = 0) {
+  const path = encodeURIComponent(symbol) + '?range=1y&interval=1wk';
   const hosts = ['https://query1.finance.yahoo.com/v8/finance/chart/', 'https://query2.finance.yahoo.com/v8/finance/chart/'];
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      if (attempt > 0) await delay(1200 * attempt);
+      if (attempt > 0) await delay(1000 * attempt);
       const yf   = hosts[attempt % 2] + path;
-      const json = await fetchJSONSafe(yf, { skipDirect: true });
+      const json = await fetchJSONSafe(yf, { skipDirect: true, proxyStartIdx: (proxyStartIdx + attempt) % PROXIES.length });
       if (json.chart?.error) throw new Error(json.chart.error.description || 'API error');
       const res = json.chart?.result?.[0];
       if (!res) throw new Error('No data');
 
       const meta   = res.meta;
       const closes = res.indicators?.adjclose?.[0]?.adjclose || res.indicators?.quote?.[0]?.close || [];
-      const highs  = res.indicators?.quote?.[0]?.high || [];
-      const lows   = res.indicators?.quote?.[0]?.low  || [];
+      const highs  = res.indicators?.quote?.[0]?.high || closes;
+      const lows   = res.indicators?.quote?.[0]?.low  || closes;
 
       const valid = closes.filter(c => c != null);
+      // 6M price = close ~26 weeks ago
       let price6m = null;
-      const halfIdx = Math.max(0, closes.length - 126);
+      const halfIdx = Math.max(0, closes.length - 26);
       for (let i = halfIdx; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
       if (!price6m) for (let i = 0; i < closes.length; i++) { if (closes[i] != null) { price6m = closes[i]; break; } }
 
       const price12m    = valid.length ? valid[0] : null;
-      const sma50       = smaLast(closes, 50);
-      const sma150      = smaLast(closes, 150);
-      const sma200      = smaLast(closes, 200);
-      const sma200ago22 = smaAgo(closes, 200, 22);
-      const high52w     = valid.length ? Math.max(...valid) : null;
-      const low52w      = valid.length ? Math.min(...valid) : null;
+      // Weekly periods: 10W≈SMA50, 30W≈SMA150, 40W≈SMA200, 4W offset≈22 trading days
+      const sma50       = smaLast(closes, 10);
+      const sma150      = smaLast(closes, 30);
+      const sma200      = smaLast(closes, 40);
+      const sma200ago22 = smaAgo(closes, 40, 4);
+      // 52W high/low from weekly bar highs/lows (more accurate than adjusted closes)
+      const validH = highs.filter(h => h != null);
+      const validL = lows.filter(l => l != null);
+      const high52w = validH.length ? Math.max(...validH) : (valid.length ? Math.max(...valid) : null);
+      const low52w  = validL.length ? Math.min(...validL) : (valid.length ? Math.min(...valid) : null);
 
+      // ADR: average weekly range over last 4 weeks, expressed as % of close
       let adrSum = 0, adrN = 0;
-      for (let i = Math.max(0, closes.length - 20); i < closes.length; i++) {
+      for (let i = Math.max(0, closes.length - 4); i < closes.length; i++) {
         if (highs[i] != null && lows[i] != null && closes[i]) { adrSum += (highs[i] - lows[i]) / closes[i] * 100; adrN++; }
       }
 
@@ -545,14 +559,14 @@ async function fetchYF(symbol) {
   throw lastErr;
 }
 
-async function fetchOne(symbol, sessionId) {
+async function fetchOne(symbol, sessionId, proxyStartIdx = 0) {
   const sess = state.sessions[sessionId];
   if (!sess?.stocks[symbol]) return;
   sess.stocks[symbol].fetchStatus = 'loading';
   sess.stocks[symbol].fetchError  = null;
   if (sessionId === state.activeId) renderTable();
   try {
-    const data = await fetchYF(symbol);
+    const data = await fetchYF(symbol, proxyStartIdx);
     const existing = sess.stocks[symbol];
     Object.assign(existing, data);
     // Universe mode: prune stocks below market cap threshold
