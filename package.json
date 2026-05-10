@@ -1,0 +1,8 @@
+{
+  "name": "momentum-tracker",
+  "version": "1.0.0",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "yahoo-finance2": "^2.13.3"
+  }
+}

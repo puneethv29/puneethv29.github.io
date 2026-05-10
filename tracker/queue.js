@@ -16,13 +16,9 @@ function enqueue(symbols, sessionId) {
 async function runQueue() {
   qRunning = true; qCancel = false;
   showProgress();
-  let batchNum = 0;
   while (queue.length && !qCancel) {
     const batch = queue.splice(0, QUEUE_CONCURRENCY);
-    await Promise.all(batch.map((item, i) =>
-      fetchOne(item.symbol, item.sessionId, (batchNum * QUEUE_CONCURRENCY + i) % PROXIES.length)
-    ));
-    batchNum++;
+    await Promise.all(batch.map(item => fetchOne(item.symbol, item.sessionId)));
     updateProgress();
     await delay(100);
   }
@@ -53,14 +49,14 @@ function updateProgress() {
     (queue.length ? ` · ${timeStr} remaining` : ' · done');
 }
 
-async function fetchOne(symbol, sessionId, proxyStartIdx = 0) {
+async function fetchOne(symbol, sessionId) {
   const sess = state.sessions[sessionId];
   if (!sess?.stocks[symbol]) return;
   sess.stocks[symbol].fetchStatus = 'loading';
   sess.stocks[symbol].fetchError  = null;
   if (sessionId === state.activeId) renderTable();
   try {
-    const data = await fetchYF(symbol, proxyStartIdx);
+    const data = await fetchYF(symbol);
     const existing = sess.stocks[symbol];
     Object.assign(existing, data);
     if (univMinMcap > 0 && existing.univStub) {

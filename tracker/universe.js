@@ -34,36 +34,32 @@ async function buildUniverse() {
   cancelBtn.style.display = 'none';
 
   try {
-    // Primary: NASDAQ screener API — one request, returns everything
-    univStatus('Fetching universe from NASDAQ screener…', 20);
-    let url = NASDAQ_SCREENER;
-    if (exchVal === 'nasdaq') url += '&exchange=nasdaq';
-    else if (exchVal === 'nyse') url += '&exchange=nyse';
-
+    // Primary: our own /api/universe serverless function (no CORS, no proxy needed)
+    univStatus('Fetching universe…', 20);
     let rows = null;
     try {
-      const data = await fetchJSONSafe(url);
-      rows = data?.data?.rows;
+      const r    = await fetch(`/api/universe?exchange=${encodeURIComponent(exchVal)}&minMcap=${minMcap}`, { cache: 'no-store' });
+      const data = await r.json();
+      rows = data?.rows;
     } catch {}
 
     if (rows?.length) {
-      univStatus(`Got ${rows.length} stocks. Filtering by market cap…`, 60);
+      // /api/universe already filtered by market cap — rows are ready to import
+      univStatus(`Got ${rows.length} stocks. Importing…`, 70);
       const sess = active();
       const toFetch = [];
       let added = 0, skipped = 0;
 
       for (const row of rows) {
         const sym = (row.symbol || '').toUpperCase().trim();
-        if (!sym || !/^[A-Z.\-]{1,12}$/.test(sym)) { skipped++; continue; }
-        const mcap  = parseFloat(String(row.marketCap || '').replace(/[^0-9.]/g, '')) || 0;
-        if (mcap < minMcap) { skipped++; continue; }
-        const price = parseFloat(String(row.lastsale  || '').replace(/[^0-9.]/g, '')) || null;
-        const vol   = parseFloat(String(row.volume    || '').replace(/[^0-9.]/g, '')) || null;
+        if (!sym) { skipped++; continue; }
         if (sess.stocks[sym]) { skipped++; continue; }
         sess.stocks[sym] = {
           ...blankStock(sym),
           name: row.name || sym, sector: row.sector || '', industry: row.industry || '',
-          currentPrice: price, marketCap: mcap, avgVolume: vol,
+          currentPrice: row.currentPrice ?? null,
+          marketCap:    row.marketCap    ?? null,
+          avgVolume:    row.avgVolume    ?? null,
         };
         toFetch.push(sym);
         added++;
@@ -72,13 +68,13 @@ async function buildUniverse() {
       persist(); renderAll();
       if (toFetch.length) enqueue(toFetch, state.activeId);
       univStatus('Done — stocks visible in table now.', 100);
-      univResult('ok', `✓ ${added} stocks loaded with market cap + sector data. Trend data fetching in background…`);
+      univResult('ok', `✓ ${added} stocks loaded. Trend data fetching in background…`);
       setTimeout(closeUnivModal, 4000);
       return;
     }
 
     // Fallback: EDGAR ticker list → stubs → prune during fetch
-    univStatus('NASDAQ screener unavailable. Falling back to EDGAR ticker list…', 30);
+    univStatus('/api/universe unavailable. Falling back to EDGAR ticker list…', 30);
     let edgarData, hasExchange = true;
     try { edgarData = await fetchJSONSafe(EDGAR_EXCH_URL); }
     catch {
